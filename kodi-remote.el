@@ -34,40 +34,40 @@
 
 (defun kodi-remote-play-pause (url)
   (interactive "p")
-   (request
-    (kodi-json-url)
-    :type "POST"
-    :data (json-encode '(("id" . 1)
-			 ("jsonrpc" . "2.0")
-			 ("method" . "Player.PlayPause")
-			 ("params" . (
-				      ("playerid" . 1)
-				      )
-			  )))
-    :headers '(("Content-Type" . "application/json"))
-    :parser 'json-read))
+  (request
+   (kodi-json-url)
+   :type "POST"
+   :data (json-encode '(("id" . 1)
+			("jsonrpc" . "2.0")
+			("method" . "Player.PlayPause")
+			("params" . (
+				     ("playerid" . 1)
+				     )
+			 )))
+   :headers '(("Content-Type" . "application/json"))
+   :parser 'json-read))
 
 
 (defun kodi-remote-music (url)
   (interactive "p")
-   (request
-    (kodi-json-url)
-    :type "POST"
-    :data (json-encode '(("id" . 1)
-			 ("jsonrpc" . "2.0")
-			 ("method" . "Player.Open")
-			 ("params" . (
+  (request
+   (kodi-json-url)
+   :type "POST"
+   :data (json-encode '(("id" . 1)
+			("jsonrpc" . "2.0")
+			("method" . "Player.Open")
+			("params" . (
+				     (
+				      "item" .
 				      (
-				       "item" .
-				       (
-					("partymode" . "music")
-					)
+				       ("partymode" . "music")
 				       )
 				      )
-			  )))
-    :headers '(("Content-Type" . "application/json"))
-    :parser 'json-read)
-)
+				     )
+			 )))
+   :headers '(("Content-Type" . "application/json"))
+   :parser 'json-read)
+  )
 
 
 (defun kodi-remote-play-url (url)
@@ -75,19 +75,19 @@
   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
   (setq json-with-url (replace-regexp-in-string "url" url json))
   (request
-    (kodi-json-url)
+   (kodi-json-url)
    :type "POST"
    :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")("params" . (("playlistid" . 1)))))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   (request
-    (kodi-json-url)
+   (kodi-json-url)
    :type "POST"
    :data json-with-url
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   (request
-    (kodi-json-url)
+   (kodi-json-url)
    :type "POST"
    :data json-with-url
    :headers '(("Content-Type" . "application/json"))
