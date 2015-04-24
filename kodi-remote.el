@@ -1,10 +1,19 @@
 (require 'request)
 (require 'json)
 
+
+(defvar kodi-host-name "localhost:9090")
+
+
+(defun kodi-json-url ()
+  (concat "http://" kodi-host-name "/jsonrpc")
+  )
+
+
 (defun kodi-remote-play-pause (url)
   (interactive "p")
    (request
-    "http://localhost:9090/jsonrpc"
+    (kodi-json-url)
     :type "POST"
     :data (json-encode '(("id" . 1)
 			 ("jsonrpc" . "2.0")
@@ -20,7 +29,7 @@
 (defun kodi-remote-music (url)
   (interactive "p")
    (request
-    "http://localhost:9090/jsonrpc"
+    (kodi-json-url)
     :type "POST"
     :data (json-encode '(("id" . 1)
 			 ("jsonrpc" . "2.0")
@@ -44,24 +53,25 @@
   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
   (setq json-with-url (replace-regexp-in-string "url" url json))
   (request
-   "http://localhost:9090/jsonrpc"
+    (kodi-json-url)
    :type "POST"
    :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")("params" . (("playlistid" . 1)))))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   (request
-   "http://localhost:9090/jsonrpc"
+    (kodi-json-url)
    :type "POST"
    :data json-with-url
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   (request
-   "http://localhost:9090/jsonrpc"
+    (kodi-json-url)
    :type "POST"
    :data json-with-url
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   )
+
 
 (defun kodi-remote-play-youtube-id (id)
   (interactive "sid: ")
@@ -69,6 +79,7 @@
   (setq url (concat pre-url id))
   (kodi-remote-play-url url)
   )
+
 
 (defun kodi-remote-play-youtube-url (url)
   (interactive "surl: ")

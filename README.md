@@ -13,8 +13,9 @@ Emacs Remote Control functions for Emacs
 ### add the path of kodi-remote and to your emacs init file:
     (add-to-list 'load-path "~/.emacs/kodi-remote")
     (require 'kodi-remote)
+    (setq kodi-host-name "my-htpc:9090")
 
-you need a running kodi instance, at the moment hostname and port is hardcoded to localhost:9090 but you can change the url strings in the elisp file easily.
+you need a running kodi instance of course!
 
 ## Using
 
