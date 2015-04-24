@@ -2,7 +2,7 @@
 
 ## Summary
 
-__DESCRIPTION__
+Emacs Remote Control functions for Emacs
 
 ## Installing
 
