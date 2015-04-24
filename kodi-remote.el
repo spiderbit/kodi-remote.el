@@ -67,7 +67,7 @@
   (interactive "sid: ")
   (setq pre-url "plugin:\/\/plugin.video.youtube\/?path=\/root\/search&action=play_video&videoid=")
   (setq url (concat pre-url id))
-  (kodi-play-url url)
+  (kodi-remote-play-url url)
   )
 
 (defun kodi-remote-play-youtube-url (url)
