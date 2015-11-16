@@ -6,7 +6,7 @@ Emacs Remote Control functions for Kodi including a function to play directly vi
 
 ## Requirements
 
-	to use the video website play feature you must install youtube-dl on your machine.
+to use the video website play feature you must install youtube-dl on your machine.
 
 ## Installing
 
