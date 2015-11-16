@@ -2,7 +2,11 @@
 
 ## Summary
 
-Emacs Remote Control functions for Emacs
+Emacs Remote Control functions for Kodi including a function to play directly videos from youtube and other sites see youtube-dl for supported sites. 
+
+## Requirements
+
+	to use the video website play feature you must install youtube-dl on your machine.
 
 ## Installing
 
@@ -20,10 +24,7 @@ you need a running kodi instance of course!
 ## Using
 
 ### starts playback of the youtube video
-    M-x kodi-remote-play-youtube-url RET <paste youtube url> RET
-or
-
-    M-x kodi-remote-play-youtube-id RET <paste youtube video id> RET
+    M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
 ### starts music playback in party mode
     M-x kodi-remote-play-music RET

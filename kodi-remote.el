@@ -33,7 +33,10 @@
 
 
 (defun kodi-remote-play-pause (url)
-  (interactive "p")
+  "toggles playing of the audio stream in kodi.
+for controlling the video player you need to change the playerid.
+I think the playerid for video was 1."
+  (interactive "p") 
   (request
    (kodi-json-url)
    :type "POST"
@@ -49,6 +52,7 @@
 
 
 (defun kodi-remote-music (url)
+  "starts musik playing in kodi in party mode"
   (interactive "p")
   (request
    (kodi-json-url)
@@ -70,7 +74,41 @@
   )
 
 
+(defun kodi-remote-playlist-previous ()
+  "previous song in kodi music player"
+  (interactive)
+  (kodi-remote-playlist-goto "previous"))
+
+(defun kodi-remote-playlist-next ()
+  "next song in kodi music player"
+  (interactive)
+  (kodi-remote-playlist-goto "next"))
+
+(defun kodi-remote-playlist-goto (pos)
+  "function to set the pos of kodi musik player"
+  (request
+   (kodi-json-url)
+   :type "POST"
+   :data (replace-regexp-in-string "pos" pos
+				   (json-encode '(("id" . 1)
+						  ("jsonrpc" . "2.0")
+						  ("method" . "Player.GoTo")
+						  ("params" . (
+							       ("playerid" . 0)
+							       ("to" . pos)
+							       )
+						   )
+						  )
+						)
+				   )
+   :headers '(("Content-Type" . "application/json"))
+   :parser 'json-read)
+  )
+
+
 (defun kodi-remote-play-url (url)
+  "plays urls either to pure urls to video files 
+or plugin play command urls"
   (interactive "surl: ")
   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
   (setq json-with-url (replace-regexp-in-string "url" url json))
@@ -85,28 +123,22 @@
    :type "POST"
    :data json-with-url
    :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read)
-  (request
-   (kodi-json-url)
-   :type "POST"
-   :data json-with-url
-   :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read)
+   :parser 'json-read)  
   )
 
 
-(defun kodi-remote-play-youtube-id (id)
-  (interactive "sid: ")
-  (setq pre-url "plugin:\/\/plugin.video.youtube\/?path=\/root\/search&action=play_video&videoid=")
-  (setq url (concat pre-url id))
-  (kodi-remote-play-url url)
-  )
-
-
-(defun kodi-remote-play-youtube-url (url)
+(defun kodi-remote-play-video-url (video-url)
+  "sends urls from videos like youtube to kodi.
+it depends on having youtube-dl installed because that was the only way
+I got it to run. Using quvi to get the url or dircectly sending a play
+command to the plugin did both not work.
+could be used for other sites, too. whatever youtube-dl supports."
   (interactive "surl: ")
-  (when (string-match "v=[^&]*" url)
-    (kodi-remote-play-youtube-id (substring (match-string 0 url) 2 ))))
+  (let ((url
+	 (substring
+	  (shell-command-to-string
+	   (concat "/bin/youtube-dl -f best -g " video-url)) 0 -1)))
+    (kodi-remote-play-url url)))
 
 
 (provide 'kodi-remote)
