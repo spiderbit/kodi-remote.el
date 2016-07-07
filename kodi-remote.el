@@ -3,6 +3,7 @@
 ;; Copyright (C) 2015 Stefan Huchler
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
+;; URL: http://github.com/spiderbit/kodi-remote.el
 
 ;; This file is not part of GNU Emacs.
 
@@ -142,3 +143,4 @@ could be used for other sites, too. whatever youtube-dl supports."
 
 
 (provide 'kodi-remote)
+;;; kodi-remote.el ends here
