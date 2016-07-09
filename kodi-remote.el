@@ -4,6 +4,7 @@
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
+;; Package-Requires: ((request "0.2.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -111,21 +112,20 @@ I think the playerid for video was 1."
   "plays urls either to pure urls to video files 
 or plugin play command urls"
   (interactive "surl: ")
-  (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
-  (setq json-with-url (replace-regexp-in-string "url" url json))
-  (request
-   (kodi-json-url)
-   :type "POST"
-   :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")("params" . (("playlistid" . 1)))))
-   :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read)
-  (request
-   (kodi-json-url)
-   :type "POST"
-   :data json-with-url
-   :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read)  
-  )
+  (let* ((json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
+         (json-with-url (replace-regexp-in-string "url" url json)))
+    (request
+     (kodi-json-url)
+     :type "POST"
+     :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")("params" . (("playlistid" . 1)))))
+     :headers '(("Content-Type" . "application/json"))
+     :parser 'json-read)
+    (request
+     (kodi-json-url)
+     :type "POST"
+     :data json-with-url
+     :headers '(("Content-Type" . "application/json"))
+     :parser 'json-read)))
 
 
 (defun kodi-remote-play-video-url (video-url)
