@@ -142,5 +142,40 @@ could be used for other sites, too. whatever youtube-dl supports."
     (kodi-remote-play-url url)))
 
 
+
+;;; Some code where I tried to get appending working:  
+
+;; (defun kodi-remote-append-url (url)
+;;   "appends video urls to the video queue, either pure urls to video files 
+;; or plugin command urls"
+;;   (interactive "surl: ")
+;;   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Add")("params" . (("playlistid" . 1)("item" .  (("file" . "url"))))))))
+;;   (setq json-with-url (replace-regexp-in-string "url" url json))
+;;   (request
+;;    (kodi-json-url)
+;;    :type "POST"
+;;    :data json-with-url
+;;    :headers '(("Content-Type" . "application/json"))
+;;    :parser 'json-read)
+;;   )
+
+
+
+;; (defun kodi-remote-append-video-url (video-url)
+;;   "sends urls from videos like youtube to kodi.
+;; it depends on having youtube-dl installed because that was the only way
+;; I got it to run. Using quvi to get the url or dircectly sending a play
+;; command to the plugin did both not work.
+;; could be used for other sites, too. whatever youtube-dl supports."
+;;   (interactive "surl: ")
+;;   (let ((url
+;; 	 (substring
+;; 	  (shell-command-to-string
+;; 	   (concat "youtube-dl -f best -g " video-url)) 0 -1)))
+;;     (kodi-remote-append-url url)))
+
+;;; Code for appending ends here
+
+
 (provide 'kodi-remote)
 ;;; kodi-remote.el ends here
