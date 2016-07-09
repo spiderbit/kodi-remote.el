@@ -91,18 +91,10 @@ I think the playerid for video was 1."
   (request
    (kodi-json-url)
    :type "POST"
-   :data (replace-regexp-in-string "pos" pos
-				   (json-encode '(("id" . 1)
-						  ("jsonrpc" . "2.0")
-						  ("method" . "Player.GoTo")
-						  ("params" . (
-							       ("playerid" . 0)
-							       ("to" . pos)
-							       )
-						   )
-						  )
-						)
-				   )
+   :data (json-encode `(("id" . 1)("jsonrpc" . "2.0")
+			("method" . "Player.GoTo")
+			("params" . (("playerid" . 0)
+				     ("to" . ,pos)))))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read)
   )
@@ -112,8 +104,7 @@ I think the playerid for video was 1."
   "plays urls either to pure urls to video files 
 or plugin play command urls"
   (interactive "surl: ")
-  (let* ((json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . "url"))))))))
-         (json-with-url (replace-regexp-in-string "url" url json)))
+  (let* ((json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . ,url)))))))))
     (request
      (kodi-json-url)
      :type "POST"
@@ -123,7 +114,7 @@ or plugin play command urls"
     (request
      (kodi-json-url)
      :type "POST"
-     :data json-with-url
+     :data json
      :headers '(("Content-Type" . "application/json"))
      :parser 'json-read)))
 
