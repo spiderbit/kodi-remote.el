@@ -129,7 +129,7 @@ could be used for other sites, too. whatever youtube-dl supports."
   (let ((url
 	 (substring
 	  (shell-command-to-string
-	   (concat "/bin/youtube-dl -f best -g " video-url)) 0 -1)))
+	   (concat "youtube-dl -f best -g " video-url)) 0 -1)))
     (kodi-remote-play-url url)))
 
 
