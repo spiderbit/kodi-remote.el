@@ -21,18 +21,24 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;;
+;; Emacs Remote Control functions for Kodi
+;; including a function to play directly videos from youtube and
+;; other sites see youtube-dl for supported sites.
+;;
+
+;;; Code:
 
 (require 'request)
 (require 'json)
 
 
-;;; Code:
-
 (defvar kodi-host-name "localhost:9090")
 
 
 (defun kodi-json-url ()
-  "Function that returns the full json-url of the kodi-instance."
+  "Function to create the full json-url of the kodi-instance."
   (concat "http://" kodi-host-name "/jsonrpc")
   )
 
@@ -171,9 +177,6 @@ Argument VIDEO-URL A Url from a youtube video."
 ;; 	   (concat "youtube-dl -f best -g " video-url)) 0 -1)))
 ;;     (kodi-remote-append-url url)))
 
-
-;;; Commentary:
-;; 
 
 ;;; Code for appending ends here
 
