@@ -33,7 +33,7 @@
   (concat "http://" kodi-host-name "/jsonrpc")
   )
 
-
+;;;###autoload
 (defun kodi-remote-play-pause (url)
   "toggles playing of the audio stream in kodi.
 for controlling the video player you need to change the playerid.
@@ -52,7 +52,7 @@ I think the playerid for video was 1."
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read))
 
-
+;;;###autoload
 (defun kodi-remote-music (url)
   "starts musik playing in kodi in party mode"
   (interactive "p")
@@ -118,7 +118,7 @@ or plugin play command urls"
      :headers '(("Content-Type" . "application/json"))
      :parser 'json-read)))
 
-
+;;;###autoload
 (defun kodi-remote-play-video-url (video-url)
   "sends urls from videos like youtube to kodi.
 it depends on having youtube-dl installed because that was the only way
