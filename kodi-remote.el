@@ -37,6 +37,7 @@
   )
 
 
+;;;###autoload
 (defun kodi-remote-play-pause ()
   "Toggle playing of the audio stream in kodi.
 for controlling the video player you need to change the playerid.
@@ -56,6 +57,7 @@ I think the playerid for video is 1."
    :parser 'json-read))
 
 
+;;;###autoload
 (defun kodi-remote-music ()
   "Start musik playing in kodi in party mode."
   (interactive "p")
@@ -121,6 +123,7 @@ I think the playerid for video is 1."
      :parser 'json-read)))
 
 
+;;;###autoload
 (defun kodi-remote-play-video-url (video-url)
   "Sends urls from videos like youtube to kodi.
 it depends on having youtube-dl installed because that was the only way
