@@ -66,7 +66,7 @@ I think the playerid for video is 1."
 ;;;###autoload
 (defun kodi-remote-music ()
   "Start musik playing in kodi in party mode."
-  (interactive "p")
+  (interactive)
   (request
    (kodi-json-url)
    :type "POST"
