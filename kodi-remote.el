@@ -26,19 +26,22 @@
 (require 'json)
 
 
+;;; Code:
+
 (defvar kodi-host-name "localhost:9090")
 
 
 (defun kodi-json-url ()
+  "Function that returns the full json-url of the kodi-instance."
   (concat "http://" kodi-host-name "/jsonrpc")
   )
 
 
-(defun kodi-remote-play-pause (url)
-  "toggles playing of the audio stream in kodi.
+(defun kodi-remote-play-pause ()
+  "Toggle playing of the audio stream in kodi.
 for controlling the video player you need to change the playerid.
-I think the playerid for video was 1."
-  (interactive "p") 
+I think the playerid for video is 1."
+  (interactive "p")
   (request
    (kodi-json-url)
    :type "POST"
@@ -53,8 +56,8 @@ I think the playerid for video was 1."
    :parser 'json-read))
 
 
-(defun kodi-remote-music (url)
-  "starts musik playing in kodi in party mode"
+(defun kodi-remote-music ()
+  "Start musik playing in kodi in party mode."
   (interactive "p")
   (request
    (kodi-json-url)
@@ -77,17 +80,17 @@ I think the playerid for video was 1."
 
 
 (defun kodi-remote-playlist-previous ()
-  "previous song in kodi music player"
+  "Previous song in kodi music player."
   (interactive)
   (kodi-remote-playlist-goto "previous"))
 
 (defun kodi-remote-playlist-next ()
-  "next song in kodi music player"
+  "Next song in kodi music player."
   (interactive)
   (kodi-remote-playlist-goto "next"))
 
 (defun kodi-remote-playlist-goto (pos)
-  "function to set the pos of kodi musik player"
+  "Function to set the POS of kodi musik player."
   (request
    (kodi-json-url)
    :type "POST"
@@ -101,8 +104,7 @@ I think the playerid for video was 1."
 
 
 (defun kodi-remote-play-url (url)
-  "plays urls either to pure urls to video files 
-or plugin play command urls"
+  "Plays either direct links to video files or plugin play command URLs."
   (interactive "surl: ")
   (let* ((json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . ,url)))))))))
     (request
@@ -120,11 +122,12 @@ or plugin play command urls"
 
 
 (defun kodi-remote-play-video-url (video-url)
-  "sends urls from videos like youtube to kodi.
+  "Sends urls from videos like youtube to kodi.
 it depends on having youtube-dl installed because that was the only way
-I got it to run. Using quvi to get the url or dircectly sending a play
+I got it to run.  Using quvi to get the url or dircectly sending a play
 command to the plugin did both not work.
-could be used for other sites, too. whatever youtube-dl supports."
+could be used for other sites, too.  whatever youtube-dl supports.
+Argument VIDEO-URL A Url from a youtube video."
   (interactive "surl: ")
   (let ((url
 	 (substring
@@ -134,10 +137,10 @@ could be used for other sites, too. whatever youtube-dl supports."
 
 
 
-;;; Some code where I tried to get appending working:  
+;;; Some code where I tried to get appending working:
 
 ;; (defun kodi-remote-append-url (url)
-;;   "appends video urls to the video queue, either pure urls to video files 
+;;   "appends video urls to the video queue, either pure urls to video files
 ;; or plugin command urls"
 ;;   (interactive "surl: ")
 ;;   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Add")("params" . (("playlistid" . 1)("item" .  (("file" . "url"))))))))
@@ -164,6 +167,10 @@ could be used for other sites, too. whatever youtube-dl supports."
 ;; 	  (shell-command-to-string
 ;; 	   (concat "youtube-dl -f best -g " video-url)) 0 -1)))
 ;;     (kodi-remote-append-url url)))
+
+
+;;; Commentary:
+;; 
 
 ;;; Code for appending ends here
 
