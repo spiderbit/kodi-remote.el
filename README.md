@@ -19,7 +19,7 @@ to use the video website play feature you must install youtube-dl on your machin
 ### add the path of kodi-remote and to your emacs init file:
     (add-to-list 'load-path "~/.emacs.d/kodi-remote")
     (require 'kodi-remote)
-    (setq kodi-host-name "my-htpc:9090")
+    (setq kodi-host-name "my-htpc:8080")
 
 you need a running kodi instance of course!
 

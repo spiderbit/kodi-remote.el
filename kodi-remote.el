@@ -34,8 +34,9 @@
 (require 'request)
 (require 'let-alist)
 (require 'cl-lib)
+(require 'cl)
 
-(defvar kodi-host-name "localhost:9090")
+(defvar kodi-host-name "localhost:8080")
 (defvar kodi-active-player -1)
 (defvar kodi-active-window nil)
 (defvar kodi-fullscreen nil)
