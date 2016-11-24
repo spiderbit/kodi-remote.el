@@ -4,7 +4,8 @@
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
-;; Package-Requires: ((request "0.2.0"))
+;; Package-Requires:
+;; ((request "0.2.0")(let-alist "1.0.4")(cl-lib "1.0")(json "1.4"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -23,15 +24,17 @@
 
 ;;; Commentary:
 ;;
-;; Emacs Remote Control functions for Kodi
-;; including a function to play directly videos from youtube and
-;; other sites see youtube-dl for supported sites.
+;; Emacs Remote Control for Kodi
+;; including a function to send youtube and other video urls
+;; to kodi see youtube-dl for supported sites.
 ;;
 
 ;;; Code:
 
-(require 'request)
 (require 'json)
+(require 'request)
+(require 'let-alist)
+(require 'cl-lib)
 
 (defvar kodi-host-name "localhost:9090")
 (defvar kodi-active-player -1)
@@ -45,17 +48,17 @@
   (concat "http://" kodi-host-name "/jsonrpc"))
 
 (defun kodi-remote-post (method params)
-  (interactive)
+  "Function to send post requests to the kodi instance.
+Argument METHOD kodi json api argument.
+Argument PARAMS kodi json api argument."
   (let* ((request-data
 	  `(("id" . 0)
 	   ("jsonrpc" . "2.0")
-	   ("method" . ,method)
-	   )))
+	   ("method" . ,method))))
     (if (equal params nil) ()
     	(setq request-data
-	      (append request-data params
-		      )))
-    (print request-data)
+	      (append request-data params)))
+    ;; (print request-data)
     (request
      (kodi-json-url)
      :type "POST"
@@ -63,6 +66,37 @@
      :headers '(("Content-Type" . "application/json"))
      :parser 'json-read)
     ))
+
+(defun kodi-remote-get (method params)
+  "Function to send get requests to the kodi instance.
+Argument METHOD kodi json api argument.
+Argument PARAMS kodi json api argument."
+  (let* ((request-data
+	  `(("id" . 0)
+	   ("jsonrpc" . "2.0")
+	   ("method" . ,method))))
+    (if (equal params nil) ()
+    	(setq request-data
+	      (append request-data params
+		      )))
+    ;; (print request-data)
+    (request
+     (kodi-json-url)
+     :data (json-encode request-data)
+     :headers '(("Content-Type" . "application/json"))
+     :success (function* (lambda (&key data &allow-other-keys)
+    		  (when data
+    		    (setq kodi-properties (let-alist (json-read-from-string data)
+					    .result))
+    		    ;; (print (aref (let-alist kodi-properties .episodedetails) 0))
+    		    ;; (print data)
+    		    )))
+     :error (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+     		  (message "Got error: %S" error-thrown)))
+     ;; :complete (lambda (&rest _) (message "Finished!"))
+     :parser 'buffer-string)))
+
+
 
 ;;;###autoload
 (defun kodi-remote-music ()
@@ -77,7 +111,6 @@
   "Toggle play/pause of active player."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (sit-for 0.01)
   (setq params
 	`(("params" . (("playerid" . ,kodi-active-player)))))
   (kodi-remote-post "Player.PlayPause" params))
@@ -93,18 +126,25 @@
   (kodi-remote-post "Player.Stop" params))
 
 (defun kodi-remote-player-seek (direction)
-  "Seek active player."
-  (interactive)
+  "Seek active player.
+Argument DIRECTION which direction and how big of step to seek."
   (kodi-remote-get-active-player-id)
-  ;; (sit-for 0.01)
   (setq params
 	`(("params" . (("playerid" . ,kodi-active-player)
 		       ("value" . ,direction)))))
   (kodi-remote-post "Player.Seek" params))
 
+
+(defun kodi-remote-play-database-id (id)
+  "Play series in database with given ID."
+  (setq params
+	`(("params" . (("item" . (("episodeid" . ,id)))))))
+  (kodi-remote-post "Player.Open" params))
+
+
 ;;;###autoload
 (defun kodi-remote-toggle-fullscreen ()
-  "Toggles Fullscreen"
+  "Toggle Fullscreen."
   (interactive)
   (kodi-remote-get-active-player-id)
   (sit-for 0.01)
@@ -114,7 +154,7 @@
 
 ;;;###autoload
 (defun kodi-remote-set-volume (offset)
-  "Changes volume recording to offset"
+  "Change volume recording to OFFSET."
   (interactive)
   (kodi-remote-get-volume)
   (sit-for 0.01)
@@ -124,6 +164,7 @@
     (kodi-remote-post "Application.SetVolume" params)))
 
 (defun kodi-remote-input (input)
+  "Function to send post INPUT json requests."
   (request
    (kodi-json-url)
    :type "POST"
@@ -134,89 +175,82 @@
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read))
 
-(defun kodi-remote-input-execute-action (input)
-  (request
-   (kodi-json-url)
-   :type "POST"
-   :data (json-encode `(("id" . 1)
-			("jsonrpc" . "2.0")
-			("method" . "Input.ExecuteAction")
-			("params" . (
-				     ("action" . ,input
-				      ))
-			 )))
-   :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read))
+(defun kodi-remote-input-execute-action (action)
+  "Function to send post ACTION json requests."
+    (setq params
+    	`(("params" . (("action" . ,action)))))
+    (kodi-remote-post "Input.ExecuteAction" params))
 
+;; todo: need to compare to other active windows (like musik) for actions.
+;;;###autoload
 (defun kodi-remote-input-left ()
-  "Move left in menu"
+  "Move left in menu or seek small backward."
   (interactive)
   (kodi-remote-get-active-window)
-  (sit-for 0.1)
+  (sit-for 0.01)
   (if (string-equal kodi-active-window "Fullscreen video")
       (kodi-remote-player-seek "smallbackward")
     (kodi-remote-input "Input.Left")))
 
 ;;;###autoload
 (defun kodi-remote-input-right ()
-  "Move right in menu"
+  "Move right in menu or seek small forward."
   (interactive)
   (kodi-remote-get-active-window)
-  (kodi-remote-get-active-player-id)
-  (sit-for 0.1)
+  (sit-for 0.01)
   (if (string-equal kodi-active-window "Fullscreen video")
       (kodi-remote-player-seek "smallforward")
     (kodi-remote-input "Input.Right")))
 
 ;;;###autoload
 (defun kodi-remote-input-up ()
-  "Move up in menu"
+  "Move up in menu or seek big forward."
   (interactive)
   (kodi-remote-get-active-window)
-  (sit-for 0.1)
+  (sit-for 0.01)
   (if (string-equal kodi-active-window "Fullscreen video")
       (kodi-remote-player-seek "bigforward")
     (kodi-remote-input "Input.Up")))
 
 ;;;###autoload
 (defun kodi-remote-input-down ()
-  "Move down in menu"
+  "Move down in menu or seek big backward."
   (interactive)
   (kodi-remote-get-active-window)
-  (sit-for 0.1)
+  (sit-for 0.01)
   (if (string-equal kodi-active-window "Fullscreen video")
       (kodi-remote-player-seek "bigbackward")
     (kodi-remote-input "Input.Down")))
 
 ;;;###autoload
 (defun kodi-remote-input-back ()
-  "Moves back menu"
+  "Move back menu."
   (interactive)
   (kodi-remote-input "Input.Back"))
 
 ;;;###autoload
 (defun kodi-remote-input-delete ()
-  "Deletes active file"
+  "Delete selected file."
   (interactive)
   (kodi-remote-input-execute-action "delete"))
 
 ;;;###autoload
 (defun kodi-remote-input-context-menu ()
-  "Activates context menu"
+  "Activate context menu."
   (interactive)
   (kodi-remote-input "Input.ContextMenu"))
 
 ;;;###autoload
 (defun kodi-remote-input-home ()
-  "Switches to the home screen"
+  "Switch to the home screen."
   (interactive)
   (kodi-remote-input "Input.Home"))
 
 ;;;###autoload
 (defun kodi-remote-input-enter ()
-  "Select active item"
+  "Select active item."
   (interactive)
-  (kodi-remote-input "Input.Enter"))
+  (kodi-remote-input-execute-action "select"))
 
 ;;;###autoload
 (defun kodi-remote-playlist-previous ()
@@ -230,75 +264,62 @@
   (interactive)
   (kodi-remote-playlist-goto "next"))
 
-
-(defun kodi-remote-get (method params)
-  (let* ((request-data
-	  `(("id" . 0)
-	   ("jsonrpc" . "2.0")
-	   ("method" . ,method)
-	   )))
-    (if (equal params nil) ()
-    	(setq request-data
-	      (append request-data params
-		      )))
-    ;; (print request-data)
-    (request
-     (kodi-json-url)
-     :data (json-encode request-data)
-     :headers '(("Content-Type" . "application/json"))
-     :success
-     (function* (lambda (&key data &allow-other-keys)
-    		  (when data
-    		    (setq kodi-properties (let-alist (json-read-from-string data) .result))
-    		    ;; `(setf target 5)
-    		    ;; (print (let-alist kodi-properties .playerid))
-    		    (print data)
-    		    )))
-     :error
-     (function* (lambda (&key error-thrown &allow-other-keys&rest _)
-    		  (message "Got error: %S" error-thrown)))
-     ;; :complete (lambda (&rest _) (message "Finished!"))
-     :parser 'buffer-string)
-    ))
-
 (defun kodi-remote-get-volume ()
-  (interactive)
+  "Poll current volume."
   (setq params
 	'(("params" . (("properties" . ("volume"))))))
   (kodi-remote-get "Application.GetProperties" params)
-  (sit-for 0.1)
+  (sit-for 0.01)
   (setq kodi-volume (let-alist kodi-properties .volume)))
 
+(defun kodi-remote-get-videos ()
+  "Poll availible episodes of series."
+  (kodi-remote-get "VideoLibrary.GetEpisodes" nil))
+
+
+(defun kodi-remote-video-scan ()
+  "Update availible/new videos."
+  (kodi-remote-post "VideoLibrary.Scan" nil))
+
+(defun kodi-remote-get-episode-details (id)
+  "Poll details of a episode.
+Argument ID kodi series database identifier."
+  (setq params
+  	`(("params" . (("episodeid" . ,id)
+		       ("properties" . ("playcount"))))))
+  (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params)
+  (sit-for 0.02))
+
 (defun kodi-remote-get-active-window ()
-  (interactive)
+  "Update currently active window."
   (setq params
 	'(("params" . (("properties" . ("currentwindow"))))))
   (kodi-remote-get "Gui.GetProperties" params)
   (sit-for 0.1)
-  (let-alist kodi-properties .volume))
+  (setq kodi-active-window (let-alist kodi-properties .currentwindow.label)))
 
 (defun kodi-remote-get-active-player-id ()
-  (interactive)
+  "Update currently active player."
   (kodi-remote-get "Player.GetActivePlayers" nil)
   (sit-for 0.1)
   (setq kodi-active-player ( let-alist (elt kodi-properties 0) .playerid)))
 
 ;;;###autoload
 (defun kodi-remote-volume-decrease ()
-  "Decrease the volume of kodi"
+  "Decrease the volume of kodi."
   (interactive)
   (kodi-remote-set-volume -10))
 
 ;;;###autoload
 (defun kodi-remote-volume-increase ()
-  "Increase the volume of kodi"
+  "Increase the volume of kodi."
   (interactive)
   (kodi-remote-set-volume 10))
 
 ;;;###autoload
 (defun kodi-remote-is-fullscreen ()
-  (interactive)
-  (sit-for 0.1)
+  "Update fullscreen status."
+  (sit-for 0.01)
   (setq params
 	'(("params" . (("properties" . ("fullscreen"))))))
   (kodi-remote-get "Gui.GetProperties" params)
@@ -321,11 +342,13 @@
 (defun kodi-remote-play-url (url)
   "Plays either direct links to video files or plugin play command URLs."
   (interactive "surl: ")
-  (let* ((json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")("params" . (("item" .  (("file" . ,url)))))))))
+  (let* ((json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")
+			      ("params" . (("item" .  (("file" . ,url)))))))))
     (request
      (kodi-json-url)
      :type "POST"
-     :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")("params" . (("playlistid" . 1)))))
+     :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")
+			  ("params" . (("playlistid" . 1)))))
      :headers '(("Content-Type" . "application/json"))
      :parser 'json-read)
     (request
@@ -352,10 +375,9 @@ Argument VIDEO-URL A Url from a youtube video."
     (kodi-remote-play-url url)))
 
 
-
-;; Create the keymap for this mode
-(defvar kodi-remote-mode-map
-  (let ((map (make-sparse-keymap)))
+(defvar kodi-remote-keyboard-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
     (define-key map (kbd "m") 'kodi-remote-music)
     (define-key map (kbd "SPC") 'kodi-remote-play-pause)
     (define-key map (kbd "<left>") 'kodi-remote-input-left)
@@ -366,82 +388,128 @@ Argument VIDEO-URL A Url from a youtube video."
     (define-key map (kbd "<return>") 'kodi-remote-input-enter)
     (define-key map (kbd "x") 'kodi-remote-stop)
     (define-key map (kbd "<delete>") 'kodi-remote-input-delete)
+    ;; start dvorak specific keybindings
     (define-key map (kbd "h") 'kodi-remote-input-left)
     (define-key map (kbd "n") 'kodi-remote-input-right)
     (define-key map (kbd "c") 'kodi-remote-input-up)
     (define-key map (kbd "t") 'kodi-remote-input-down)
+    ;; end dvorak specific keybindings
     (define-key map (kbd "=") 'kodi-remote-volume-increase)
     (define-key map (kbd "+") 'kodi-remote-volume-increase)
     (define-key map (kbd "-") 'kodi-remote-volume-decrease)
     (define-key map (kbd "<tab>") 'kodi-remote-toggle-fullscreen)
     map)
-  "Keymap for kodi-remote-mode.")
+  "Keymap for kodi-remote-keyboard-mode.")
 
-
-(define-derived-mode kodi-remote-mode special-mode "kodi-remote"
-  "Major mode for remote controlling kodi instance
+(define-derived-mode kodi-remote-keyboard-mode special-mode "kodi-remote-keyboard"
+  "Major mode for remote controlling kodi instance with keyboard commands
 Key bindings:
-\\{kodi-remote-mode-map}
-")
+\\{kodi-remote-keyboard-mode-map}"
+  (setq cursor-type nil))
 
 ;;;###autoload
-(defun kodi-remote ()
-  "Open a `kodi-remote-mode' buffer."
+(defun kodi-remote-keyboard ()
+  "Open a `kodi-remote-keyboard-mode' buffer."
   (interactive)
-  (let* ((name "*kodi-remote*")
-         (buffer (or (get-buffer name)
-                     (generate-new-buffer name))))
+  (let* ((name "*kodi-remote-keyboard*")
+         (buffer (get-buffer-create name)))
     (unless (eq buffer (current-buffer))
       (with-current-buffer buffer
-        (unless (eq major-mode 'kodi-remote-mode)
-          (condition-case e
-              (progn
-		;; (setq buffer-read-only nil)
-                (kodi-remote-mode)
-		;; (insert "Kodi Remote")
-		;; (newline 3)
-		;; (insert "kodi-remote-mode-map")
-		;; (read-only-mode)
-                ;; (KODI-remote-draw)()
-                ;; (goto-char (point-min))
-		)
-            (error
-             (kill-buffer buffer)
-             (signal (car e) (cdr e))))))
-      (switch-to-buffer-other-window buffer))))
+        (let ((inhibit-read-only t) )
+          (erase-buffer)
+          (kodi-remote-keyboard-mode)
+          (insert (concat "Kodi Remote:\n"
+                          (substitute-command-keys
+                           "\\{kodi-remote-keyboard-mode-map}"))))
+        (switch-to-buffer-other-window buffer)))))
 
 
-;;; Some code where I tried to get appending working:
+;; (defvar kodi-remote-series-mode-map
+;;   (let ((map (make-sparse-keymap))
+;; 	(menu-map (make-sparse-keymap)))
+;;     (define-key map (kbd "g") 'kodi-remote-draw)
+;;     map)
+;;   "Keymap for kodi-remote-series-mode.")
 
-;; (defun kodi-remote-append-url (url)
-;;   "appends video urls to the video queue, either pure urls to video files
-;; or plugin command urls"
-;;   (interactive "surl: ")
-;;   (setq json (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Add")("params" . (("playlistid" . 1)("item" .  (("file" . "url"))))))))
-;;   (setq json-with-url (replace-regexp-in-string "url" url json))
-;;   (request
-;;    (kodi-json-url)
-;;    :type "POST"
-;;    :data json-with-url
-;;    :headers '(("Content-Type" . "application/json"))
-;;    :parser 'json-read)
-;;   )
+;; (defun sbit-action (obj)
+;;   (kodi-remote-play-database-id
+;;    (button-get obj 'id)))
 
-;; (defun kodi-remote-append-video-url (video-url)
-;;   "sends urls from videos like youtube to kodi.
-;; it depends on having youtube-dl installed because that was the only way
-;; I got it to run. Using quvi to get the url or dircectly sending a play
-;; command to the plugin did both not work.
-;; could be used for other sites, too. whatever youtube-dl supports."
-;;   (interactive "surl: ")
-;;   (let ((url
-;; 	 (substring
-;; 	  (shell-command-to-string
-;; 	   (concat "youtube-dl -f best -g " video-url)) 0 -1)))
-;;     (kodi-remote-append-url url)))
+;; (define-derived-mode kodi-remote-series-mode tabulated-list-mode "kodi-remote-series"
+;;   "Major Mode for kodi series.
+;; Key bindings:
+;; \\{kodi-remote-series-mode-map}")
+
+;; ;;;###autoload
+;; (defun kodi-remote-series ()
+;;   "Open a `kodi-remote-series-mode' buffer."
+;;   (interactive)
+;;   (let* ((name "*kodi-remote-series*")
+;;          (buffer (or (get-buffer name)
+;;                      (generate-new-buffer name))))
+;;     (unless (eq buffer (current-buffer))
+;;       (with-current-buffer buffer
+;;         (unless (eq major-mode 'kodi-remote-series-mode)
+;;           (condition-case e
+;;               (progn
+;; 		(kodi-remote-series-mode)
+;; 		(kodi-remote-draw)
+;; 		)
+;;             (error
+;;              (kill-buffer buffer)
+;;              (signal (car e) (cdr e))))))
+;;       (switch-to-buffer-other-window buffer))))
+
+;; (defun kodi-remote-draw ()
+;;   (interactive)
+;;   (setq tabulated-list-format [("Series" 10 t)])
+;;   (kodi-remote-video-scan)
+;;   (kodi-remote-get-videos)
+;;   (let* ((entries '()))
+;;     (dolist (elt (append (let-alist kodi-properties .episodes) nil) )
+;;       (let* ((name (cdr (assoc 'label elt)))
+;; 	     (entry (list nil (vector (cdr (car elt)))))
+;; 	     (id (cdr (cadr elt))))
+;; 	(kodi-remote-get-episode-details id)
+;; 	 (sit-for 0.05)
+;; 	(if (equal (cdr (elt(car kodi-properties)1)) 0)
+;; 	    (setq entries
+;; 		  (push (list id (vector `(,name
+;; 					   action sbit-action id ,id))) entries)))))
+;;     (sit-for 0.1)
+;;     (setq tabulated-list-entries entries)
+;;     (tabulated-list-init-header)
+;;     (tabulated-list-print)))
 
 
-;;; Code for appending ends here
+  ;; (kodi-remote-get-episode-details 343)
+
+;; (define-derived-mode kodi-remote-mode tabulated-list-mode "kodi-remote"
+;;   "Major mode for remote controlling kodi instance
+;; Key bindings:
+;; \\{kodi-remote-mode-map}"
+;;   (setq tabulated-list-format [("choice" 10 t)])
+;;   (setq tabulated-list-entries '((nil ["Keyboard"])(nil ["Series"])(nil ["Movies"])(nil ["Music"])))
+;;   (tabulated-list-init-header)
+;;   (tabulated-list-print))
+
+
+;; (defun append-to-buffer (buffer start end)
+;;   "Append the text of the region to BUFFER."
+;;   (interactive "BAppend to buffer: \nr")
+;;   (let ((oldbuf (current-buffer)))
+;;     (with-current-buffer (get-buffer-create buffer)
+;;       (insert-buffer-substring oldbuf start end))))
+
+;; (defun sbit-seq-get (seq path)
+;;   (cond ((null path) seq)
+;; 	((listp seq)
+;; 	 (sbit-seq-get (cdr (assoc (car path) seq)) (cdr path)))
+;; 	((vectorp seq)
+;; 	 (sbit-seq-get (elt seq (car path)) (cdr path)))
+;; 	(t seq)))
+
+
 
 
 (provide 'kodi-remote)

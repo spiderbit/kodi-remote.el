@@ -2,8 +2,9 @@
 
 ## Summary
 
-Emacs Remote Control functions for Kodi including a function to play directly videos from youtube and other sites see youtube-dl for supported sites. 
-
+Emacs Remote Control for Kodi
+Including a function to send youtube and other urls to kodi
+* see youtube-dl for [supported sites](https://github.com/rg3/youtube-dl/blob/master/docs/supportedsites.md)
 ## Requirements
 
 to use the video website play feature you must install youtube-dl on your machine.
@@ -11,11 +12,11 @@ to use the video website play feature you must install youtube-dl on your machin
 ## Installing
 
 ### clone kodi remote
-    cd ~/.emacs/
+    cd ~/.emacs.d/
     git clone <repo-url>
 
 ### add the path of kodi-remote and to your emacs init file:
-    (add-to-list 'load-path "~/.emacs/kodi-remote")
+    (add-to-list 'load-path "~/.emacs.d/kodi-remote")
     (require 'kodi-remote)
     (setq kodi-host-name "my-htpc:9090")
 
@@ -23,14 +24,14 @@ you need a running kodi instance of course!
 
 ## Using
 
+### starts kodi remote major mode Control kodi like with a physical connected keyboard
+    M-x kodi-remote-keyboard RET
+
 ### starts playback of the youtube video
     M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
 ### starts music playback in party mode
     M-x kodi-remote-play-music RET
-
-### toggles play/pause
-    M-x kodi-remote-play-pause RET
 
 ## Contributing
 
