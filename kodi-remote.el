@@ -4,8 +4,7 @@
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
-;; Package-Requires:
-;; ((request "0.2.0")(let-alist "1.0.4")(cl-lib "1.0")(json "1.4"))
+;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(cl-lib "1.0")(json "1.4"))
 
 ;; This file is not part of GNU Emacs.
 
