@@ -1,10 +1,11 @@
-;;; kodi-remote.el --- functions to remote control a kodi instance
+;;; kodi-remote.el --- Remote Control for Kodi
 
-;; Copyright (C) 2015 Stefan Huchler
+;; Copyright (C) 2015-2016 Stefan Huchler
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
 ;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(cl-lib "1.0")(json "1.4"))
+;; Keywords: kodi tools convinience
 
 ;; This file is not part of GNU Emacs.
 
@@ -22,11 +23,12 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
-;; Emacs Remote Control for Kodi
-;; including a function to send youtube and other video urls
-;; to kodi see youtube-dl for supported sites.
-;;
+
+;; A major to remote control kodi instances.
+;; First specify the hostname/ip of your kodi webserver:
+;; (setq kodi-host-name "my-htpc:8080")
+;; Then start the Remote with the command:
+;; 'kodi-remote-keyboard' 
 
 ;;; Code:
 
