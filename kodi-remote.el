@@ -104,18 +104,17 @@ Argument PARAMS kodi json api argument."
 (defun kodi-remote-music ()
   "Start musik playing in kodi in party mode."
   (interactive)
-  (setq params
-	'(("params" . (("item" . (("partymode" . "music")))))))
-  (kodi-remote-post "Player.Open" params))
+  (let* ((params '(("params" . (("item" . (("partymode" . "music"))))))))
+    (kodi-remote-post "Player.Open" params)))
 
 ;;;###autoload
 (defun kodi-remote-play-pause ()
   "Toggle play/pause of active player."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (setq params
-	`(("params" . (("playerid" . ,kodi-active-player)))))
-  (kodi-remote-post "Player.PlayPause" params))
+  (let* ((params
+	  `(("params" . (("playerid" . ,kodi-active-player))))))
+    (kodi-remote-post "Player.PlayPause" params)))
   
 ;;;###autoload
 (defun kodi-remote-stop ()
@@ -123,25 +122,25 @@ Argument PARAMS kodi json api argument."
   (interactive)
   (kodi-remote-get-active-player-id)
   (sit-for 0.01)
-  (setq params
-	`(("params" . (("playerid" . ,kodi-active-player)))))
-  (kodi-remote-post "Player.Stop" params))
+  (let* ((params
+	  `(("params" . (("playerid" . ,kodi-active-player))))))
+    (kodi-remote-post "Player.Stop" params)))
 
 (defun kodi-remote-player-seek (direction)
   "Seek active player.
 Argument DIRECTION which direction and how big of step to seek."
   (kodi-remote-get-active-player-id)
-  (setq params
-	`(("params" . (("playerid" . ,kodi-active-player)
-		       ("value" . ,direction)))))
-  (kodi-remote-post "Player.Seek" params))
+  (let* ((params
+	  `(("params" . (("playerid" . ,kodi-active-player)
+			 ("value" . ,direction))))))
+    (kodi-remote-post "Player.Seek" params)))
 
 
 (defun kodi-remote-play-database-id (id)
   "Play series in database with given ID."
-  (setq params
-	`(("params" . (("item" . (("episodeid" . ,id)))))))
-  (kodi-remote-post "Player.Open" params))
+  (let* ((params
+	  `(("params" . (("item" . (("episodeid" . ,id))))))))
+    (kodi-remote-post "Player.Open" params)))
 
 
 ;;;###autoload
@@ -150,9 +149,9 @@ Argument DIRECTION which direction and how big of step to seek."
   (interactive)
   (kodi-remote-get-active-player-id)
   (sit-for 0.01)
-  (setq params
-	`(("params" . (("fullscreen" . "toggle")))))
-  (kodi-remote-post "Gui.SetFullScreen" params))
+  (let* ((params
+	  `(("params" . (("fullscreen" . "toggle"))))))
+    (kodi-remote-post "Gui.SetFullScreen" params)))
 
 ;;;###autoload
 (defun kodi-remote-set-volume (offset)
@@ -161,9 +160,9 @@ Argument DIRECTION which direction and how big of step to seek."
   (kodi-remote-get-volume)
   (sit-for 0.01)
   (let* ((vol (+ kodi-volume offset)))
-    (setq params
-	  `(("params" . (("volume" . ,vol)))))
-    (kodi-remote-post "Application.SetVolume" params)))
+    (let* ((params
+	    `(("params" . (("volume" . ,vol))))))
+      (kodi-remote-post "Application.SetVolume" params))))
 
 (defun kodi-remote-input (input)
   "Function to send post INPUT json requests."
@@ -179,9 +178,9 @@ Argument DIRECTION which direction and how big of step to seek."
 
 (defun kodi-remote-input-execute-action (action)
   "Function to send post ACTION json requests."
-    (setq params
-    	`(("params" . (("action" . ,action)))))
-    (kodi-remote-post "Input.ExecuteAction" params))
+  (let* ((params
+	  `(("params" . (("action" . ,action))))))
+    (kodi-remote-post "Input.ExecuteAction" params)))
 
 ;; todo: need to compare to other active windows (like musik) for actions.
 ;;;###autoload
@@ -268,9 +267,9 @@ Argument DIRECTION which direction and how big of step to seek."
 
 (defun kodi-remote-get-volume ()
   "Poll current volume."
-  (setq params
-	'(("params" . (("properties" . ("volume"))))))
-  (kodi-remote-get "Application.GetProperties" params)
+  (let* ((params
+	  '(("params" . (("properties" . ("volume")))))))
+    (kodi-remote-get "Application.GetProperties" params))
   (sit-for 0.01)
   (setq kodi-volume (let-alist kodi-properties .volume)))
 
@@ -286,17 +285,17 @@ Argument DIRECTION which direction and how big of step to seek."
 (defun kodi-remote-get-episode-details (id)
   "Poll details of a episode.
 Argument ID kodi series database identifier."
-  (setq params
-  	`(("params" . (("episodeid" . ,id)
-		       ("properties" . ("playcount"))))))
-  (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params)
+  (let* ((params
+	  `(("params" . (("episodeid" . ,id)
+			 ("properties" . ("playcount")))))))
+    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
   (sit-for 0.02))
 
 (defun kodi-remote-get-active-window ()
   "Update currently active window."
-  (setq params
-	'(("params" . (("properties" . ("currentwindow"))))))
-  (kodi-remote-get "Gui.GetProperties" params)
+  (let* ((params
+	  '(("params" . (("properties" . ("currentwindow")))))))
+    (kodi-remote-get "Gui.GetProperties" params))
   (sit-for 0.1)
   (setq kodi-active-window (let-alist kodi-properties .currentwindow.label)))
 
@@ -322,9 +321,9 @@ Argument ID kodi series database identifier."
 (defun kodi-remote-is-fullscreen ()
   "Update fullscreen status."
   (sit-for 0.01)
-  (setq params
-	'(("params" . (("properties" . ("fullscreen"))))))
-  (kodi-remote-get "Gui.GetProperties" params)
+  (let* ((params
+	  '(("params" . (("properties" . ("fullscreen")))))))
+    (kodi-remote-get "Gui.GetProperties" params))
   (let-alist kodi-properties .fullscreen))
   
 (defun kodi-remote-playlist-goto (pos)
