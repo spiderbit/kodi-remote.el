@@ -4,7 +4,7 @@
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
-;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(cl-lib "1.0")(json "1.4"))
+;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(json "1.4"))
 ;; Keywords: kodi tools convinience
 
 ;; This file is not part of GNU Emacs.
@@ -35,8 +35,6 @@
 (require 'json)
 (require 'request)
 (require 'let-alist)
-(require 'cl-lib)
-(require 'cl)
 
 (defvar kodi-host-name "localhost:8080")
 (defvar kodi-active-player -1)
@@ -86,14 +84,14 @@ Argument PARAMS kodi json api argument."
      (kodi-json-url)
      :data (json-encode request-data)
      :headers '(("Content-Type" . "application/json"))
-     :success (function* (lambda (&key data &allow-other-keys)
+     :success (cl-function (lambda (&key data &allow-other-keys)
     		  (when data
     		    (setq kodi-properties (let-alist (json-read-from-string data)
 					    .result))
     		    ;; (print (aref (let-alist kodi-properties .episodedetails) 0))
     		    ;; (print data)
     		    )))
-     :error (function* (lambda (&key error-thrown &allow-other-keys&rest _)
+     :error (cl-function (lambda (&key error-thrown &allow-other-keys&rest _)
      		  (message "Got error: %S" error-thrown)))
      ;; :complete (lambda (&rest _) (message "Finished!"))
      :parser 'buffer-string)))
