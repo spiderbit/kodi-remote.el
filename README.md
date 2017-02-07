@@ -25,6 +25,9 @@ you need a running kodi instance of course!
 
 ## Using
 
+### starts kodi series mode Shows you a list of your series, from where you can navigate through your series and start them.
+    M-x kodi-remote-series
+
 ### starts kodi remote major mode Control kodi like with a physical connected keyboard
     M-x kodi-remote-keyboard RET
 
