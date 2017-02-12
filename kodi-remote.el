@@ -493,9 +493,40 @@ Key bindings:
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "g") 'kodi-refresh)
     (define-key map (kbd "q") 'kodi-remote-draw-shows)
+    (define-key map (kbd "d") 'kodi-remote-delete)
+    (define-key map (kbd "c") 'kodi-remote-series-clean)
+    (define-key map (kbd "s") 'kodi-remote-series-scan)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     map)
   "Keymap for `kodi-remote-series-mode'.")
+
+(defun kodi-remote-delete ()
+  "Refreshes kodi-series buffer."
+  (interactive)
+  (let* ((params
+	  `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))))
+    (kodi-remote-post "VideoLibrary.RemoveEpisode" params)
+    ))
+
+
+(defun kodi-remote-series-clean ()
+  "Cleans video library."
+  (interactive)
+  (let* ((params nil
+	  ;; `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))
+	  ))
+    (kodi-remote-post "VideoLibrary.Clean" params)
+    ))
+
+
+(defun kodi-remote-series-scan ()
+  "Scans kodi for new video content."
+  (interactive)
+  (let* ((params nil
+	  ;; `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))
+	  ))
+    (kodi-remote-post "VideoLibrary.Scan" params)
+    ))
 
 (defun sbit-action (obj)
   "Helper method for series start buttons.
