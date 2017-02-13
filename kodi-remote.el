@@ -95,6 +95,7 @@ Argument PARAMS kodi json api argument."
     		  (when data
     		    (setq kodi-properties (let-alist (json-read-from-string data)
 					    .result))
+		    ;; (message kodi-properties)
     		    ;; (print (aref (let-alist kodi-properties .episodedetails) 0))
     		    (setq kodi-request-running nil)
     		    )))
@@ -324,6 +325,23 @@ Optional argument SHOW-ID limits to a specific show."
 			   ("value" . "1" ))))))))
   (kodi-remote-get "VideoLibrary.GetTVShows" nil)))
 
+(defun kodi-remote-playlist-add-url ()
+  "Adds item/video to playlist"
+  (interactive)
+  (let* ((params '(("params" . (("playlistid" . 1)
+				("item" . (("file" . "http://techslides.com/demos/sample-videos/small.ogv")
+					   )))))))
+    (kodi-remote-post "Playlist.Add" params))
+  )
+
+(defun kodi-remote-playlist-get ()
+  "Requests playlist items"
+  (let* ((params
+  	  '(("params" . (("properties" . ["duration" "runtime" "title"])
+			 ("playlistid" . 1))))))
+  (kodi-remote-get "Playlist.GetItems" params)))
+
+ 
 
 (defun kodi-remote-video-scan ()
   "Update availible/new videos."
@@ -626,6 +644,66 @@ Optional argument OBJ containes the specific show."
     (setq tabulated-list-entries entries)
     (tabulated-list-init-header)
     (tabulated-list-print)))
+
+
+;;;###autoload
+(defun kodi-remote-playlist-draw ()
+  "Draws the current playlist."
+  (interactive)
+  (setq tabulated-list-format [("Entry" 30 t)])
+  ;; (setq kodi-active-window "shows")
+  (kodi-remote-playlist-get)
+  ;; (print (let-alist kodi-properties .items))
+  (kodi-remote-sit-for-done)
+  (let* ((entries '()))
+    (dolist (item (append (let-alist kodi-properties .items) nil))
+      (push (list (spiderbit-get-id item)
+		  (vector `(,(spiderbit-get-name item)
+			    ;; action kodi-remote-draw-episodes
+			    id ,(spiderbit-get-show-id item))
+			  ))
+	    entries))
+    (setq tabulated-list-entries entries)
+    (tabulated-list-init-header)
+    (tabulated-list-print)))
+
+(defvar kodi-remote-playlist-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "k") 'kodi-remote-keyboard)
+    (define-key map (kbd "g") 'kodi-remote-playlist-draw)
+    (define-key map (kbd "q") 'kodi-remote-playlist-draw)
+    (define-key map (kbd "n") 'kodi-remote-playlist-next)
+    (define-key map (kbd "d") 'kodi-remote-playlist-remove)
+    (define-key map (kbd "a") 'kodi-remote-playlist-add-url)
+    map)
+  "Keymap for `kodi-remote-playlist-mode'.")
+
+(define-derived-mode kodi-remote-playlist-mode tabulated-list-mode "kodi-remote-playlist"
+  "Major Mode for kodi playlists.
+Key bindings:
+\\{kodi-remote-playlist-mode-map}")
+
+;;;###autoload
+(defun kodi-remote-playlist ()
+  "Open a `kodi-remote-playlist-mode' buffer."
+  (interactive)
+  (let* ((name "*kodi-remote-playlist*")
+         (buffer (or (get-buffer name)
+                     (generate-new-buffer name))))
+    (unless (eq buffer (current-buffer))
+      (with-current-buffer buffer
+        (unless (eq major-mode 'kodi-remote-playlist-mode)
+          (condition-case e
+              (progn
+		(kodi-remote-playlist-mode)
+		(kodi-remote-playlist-draw)
+		)
+            (error
+             (kill-buffer buffer)
+             (signal (car e) (cdr e))))))
+      (switch-to-buffer-other-window buffer))))
+
 
 ;; (kodi-remote-get-episode-details 343)
 
