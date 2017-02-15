@@ -319,11 +319,9 @@ Optional argument SHOW-ID limits to a specific show."
 (defun kodi-remote-get-show-list ()
   "Poll unwatched show."
   (let* ((params
-  	  '(("params" . (("filter" .
-			  (("field" . "playcount")
-			   ("operator" . "lessthan")
-			   ("value" . "1" ))))))))
-  (kodi-remote-get "VideoLibrary.GetTVShows" nil)))
+  	  '(("params" . (("properties" .
+			  ["title" "watchedepisodes" "episode"]))))))
+  (kodi-remote-get "VideoLibrary.GetTVShows" params)))
 
 (defun kodi-remote-playlist-add-url ()
   "Adds item/video to playlist"
@@ -589,6 +587,12 @@ Key bindings:
   "Return the id of a SHOW."
   (cdr (assoc 'tvshowid show)))
 
+(defun kodi-show-get-number-of-unwatched (show)
+  "Return number of unwatched episodes from a SHOW."
+  (- (cdr (assoc 'episode show))
+     (cdr (assoc 'watchedepisodes show))))
+
+
 ;;;###autoload
 (defun kodi-remote-draw-episodes (&optional obj)
   "Draws a list of episodes of all or a specific show.
@@ -627,23 +631,25 @@ Optional argument OBJ containes the specific show."
   (setq kodi-active-window "shows")
   (kodi-remote-get-show-list)
   (kodi-remote-sit-for-done)
-  (let* ((entries '()))
-    (dolist (show (append (let-alist kodi-properties .tvshows) nil))
-      (kodi-remote-get-unwatched-series-episodes (spiderbit-get-show-id show))
-      (kodi-remote-sit-for-done)
-      (let* ((number-of-episodes (length (let-alist kodi-properties .episodes))))
-	(when (or (> number-of-episodes 0) kodi-unseen-visible)
-	  (push (list (spiderbit-get-id show)
-		      (vector `(,(spiderbit-get-name show)
-				action kodi-remote-draw-episodes
-				id ,(spiderbit-get-show-id show))
-			      `(,(number-to-string number-of-episodes)
-				action kodi-remote-draw-episodes
-				id ,(spiderbit-get-show-id show))))
-		entries))))
-    (setq tabulated-list-entries entries)
-    (tabulated-list-init-header)
-    (tabulated-list-print)))
+  (setq tabulated-list-entries
+	(remove nil
+		(mapcar 'kodi-generate-entries
+			(let-alist kodi-properties .tvshows ))))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
+
+(defun kodi-generate-entries (item)
+  "Generate tabulated-list entries for kodi media buffers"
+  ;; (print item)
+  (let* ((number-of-episodes (kodi-show-get-number-of-unwatched item)))
+    (when (or (> number-of-episodes 0) kodi-unseen-visible)
+      (list (spiderbit-get-id item)
+	    (vector `(,(spiderbit-get-name item)
+		      action kodi-remote-draw-episodes
+		      id ,(spiderbit-get-show-id item))
+		    `(,(number-to-string number-of-episodes)
+		      action kodi-remote-draw-episodes
+		      id ,(spiderbit-get-show-id item)))))))
 
 
 ;;;###autoload
@@ -655,17 +661,15 @@ Optional argument OBJ containes the specific show."
   (kodi-remote-playlist-get)
   ;; (print (let-alist kodi-properties .items))
   (kodi-remote-sit-for-done)
-  (let* ((entries '()))
-    (dolist (item (append (let-alist kodi-properties .items) nil))
-      (push (list (spiderbit-get-id item)
-		  (vector `(,(spiderbit-get-name item)
-			    ;; action kodi-remote-draw-episodes
-			    id ,(spiderbit-get-show-id item))
-			  ))
-	    entries))
-    (setq tabulated-list-entries entries)
-    (tabulated-list-init-header)
-    (tabulated-list-print)))
+  (setq tabulated-list-entries '())
+  (dolist (item (append (let-alist kodi-properties .items) nil))
+    (push (list (spiderbit-get-id item)
+		(vector `(,(spiderbit-get-name item)
+			  id ,(spiderbit-get-show-id item))))
+	  tabulated-list-entries))
+  ;; (setq tabulated-list-entries entries)
+  (tabulated-list-init-header)
+  (tabulated-list-print))
 
 (defvar kodi-remote-playlist-mode-map
   (let ((map (make-sparse-keymap))
