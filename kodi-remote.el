@@ -760,18 +760,3 @@ Key bindings:
 
 (provide 'kodi-remote)
 ;;; kodi-remote.el ends here
-
-;; (defun append-to-buffer (buffer start end)
-;;   "Append the text of the region to BUFFER."
-;;   (interactive "BAppend to buffer: \nr")
-;;   (let ((oldbuf (current-buffer)))
-;;     (with-current-buffer (get-buffer-create buffer)
-;;       (insert-buffer-substring oldbuf start end))))
-
-;; (defun sbit-seq-get (seq path)
-;;   (cond ((null path) seq)
-;; 	((listp seq)
-;; 	 (sbit-seq-get (cdr (assoc (car path) seq)) (cdr path)))
-;; 	((vectorp seq)
-;; 	 (sbit-seq-get (elt seq (car path)) (cdr path)))
-;; 	(t seq)))
