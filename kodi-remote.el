@@ -662,8 +662,8 @@ Optional argument OBJ containes the specific show."
   "Draws a list of shows."
   (interactive)
   (setq tabulated-list-format [("Shows" 30 t) ("unseen" 10 t)])
-  ;; (kodi-remote-video-scan)
-  ;; (setq kodi-active-window "shows")
+  (kodi-remote-video-scan)
+  (kodi-remote-sit-for-done)
   (kodi-remote-get-show-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
