@@ -37,6 +37,7 @@
 (require 'json)
 (require 'request)
 (require 'let-alist)
+(require 'subr-x)
 
 (defvar kodi-host-name "localhost:8080")
 (defvar kodi-active-player -1)
@@ -47,6 +48,8 @@
 (defvar kodi-request-running nil)
 (defvar kodi-unseen-visible nil)
 (defvar kodi-selected-show nil)
+(defvar-local kodi-remote-refresh-function nil
+  "The name of the function used to redraw a buffer.")
 
 (defun kodi-json-url ()
   "Function to create the full json-url of the kodi-instance."
@@ -328,7 +331,7 @@ Optional argument SHOW-ID limits to a specific show."
   (kodi-remote-get "VideoLibrary.GetTVShows" params)))
 
 (defun kodi-remote-playlist-add-url ()
-  "Adds item/video to playlist"
+  "Add item/video to playlist."
   (interactive)
   (let* ((params '(("params" . (("playlistid" . 1)
 				("item" . (("file" . "http://techslides.com/demos/sample-videos/small.ogv")
@@ -337,7 +340,7 @@ Optional argument SHOW-ID limits to a specific show."
   )
 
 (defun kodi-remote-playlist-get ()
-  "Requests playlist items"
+  "Requests playlist items."
   (let* ((params
   	  '(("params" . (("properties" . ["duration" "runtime" "title"])
 			 ("playlistid" . 1))))))
@@ -503,25 +506,12 @@ Key bindings:
   (setq kodi-unseen-visible(not kodi-unseen-visible))
   (kodi-remote-draw-shows))
 
-(defvar kodi-remote-series-mode-map
-  (let ((map (make-sparse-keymap))
-	(menu-map (make-sparse-keymap)))
-    (define-key map (kbd "k") 'kodi-remote-keyboard)
-    (define-key map (kbd "g") 'kodi-remote-draw-shows)
-    ;; (define-key map (kbd "d") 'kodi-remote-delete)
-    (define-key map (kbd "c") 'kodi-remote-series-clean)
-    (define-key map (kbd "s") 'kodi-remote-series-scan)
-    (define-key map (kbd "l") 'kodi-remote-series-toggle-visibility)
-    map)
-  "Keymap for `kodi-remote-series-mode'.")
-
 (defun kodi-remote-delete ()
   "Refreshes kodi-series buffer."
   (interactive)
   (let* ((params
 	  `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))))
-    (kodi-remote-post "VideoLibrary.RemoveEpisode" params)
-    ))
+    (kodi-remote-post "VideoLibrary.RemoveEpisode" params)))
 
 
 (defun kodi-remote-series-clean ()
@@ -533,85 +523,19 @@ Key bindings:
     (kodi-remote-post "VideoLibrary.Clean" params)
     ))
 
-
 (defun kodi-remote-series-scan ()
   "Scans kodi for new video content."
   (interactive)
   (let* ((params nil
 	  ;; `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))
 	  ))
-    (kodi-remote-post "VideoLibrary.Scan" params)
-    ))
+    (kodi-remote-post "VideoLibrary.Scan" params)))
 
 (defun sbit-action (obj)
   "Helper method for series start buttons.
 Argument OBJ the button obj."
   (kodi-remote-play-database-id
    (button-get obj 'id)))
-
-(define-derived-mode kodi-remote-series-mode tabulated-list-mode "kodi-remote-series"
-  "Major Mode for kodi series.
-Key bindings:
-\\{kodi-remote-series-mode-map}")
-
-;;;###autoload
-(defun kodi-remote-series ()
-  "Open a `kodi-remote-series-mode' buffer."
-  (interactive)
-  (let* ((name "*kodi-remote-series*")
-         (buffer (or (get-buffer name)
-                     (generate-new-buffer name))))
-    (unless (eq buffer (current-buffer))
-      (with-current-buffer buffer
-        (unless (eq major-mode 'kodi-remote-series-mode)
-          (condition-case e
-              (progn
-		(kodi-remote-series-mode)
-		(kodi-remote-draw-shows))
-            (error
-             (kill-buffer buffer)
-             (signal (car e) (cdr e))))))
-      (switch-to-buffer-other-window buffer))))
-
-
-(define-derived-mode kodi-remote-series-episodes-mode tabulated-list-mode "kodi-remote-series-episodes"
-  "Major Mode for kodi series.
-Key bindings:
-\\{kodi-remote-series-episodes-mode-map}")
-
-;;;###autoload
-(defun kodi-remote-series-episodes ()
-  "Open a `kodi-remote-series-episodes-mode' buffer."
-  (interactive)
-  (let* ((name "*kodi-remote-series-episodes*")
-         (buffer (or (get-buffer name)
-                     (generate-new-buffer name))))
-    (unless (eq buffer (current-buffer))
-      (with-current-buffer buffer
-        (unless (eq major-mode 'kodi-remote-series-episodes-mode)
-          (condition-case e
-              (progn
-		(kodi-remote-series-episodes-mode)
-		)
-            (error
-             (kill-buffer buffer)
-             (signal (car e) (cdr e)))))
-	(kodi-remote-draw-episodes))
-      (switch-to-buffer-other-window buffer))))
-
-
-(defvar kodi-remote-series-episodes-mode-map
-  (let ((map (make-sparse-keymap))
-	(menu-map (make-sparse-keymap)))
-    (define-key map (kbd "k") 'kodi-remote-keyboard)
-    (define-key map (kbd "g") 'kodi-remote-draw-episodes)
-    (define-key map (kbd "d") 'kodi-remote-delete)
-    (define-key map (kbd "c") 'kodi-remote-series-clean)
-    (define-key map (kbd "s") 'kodi-remote-series-scan)
-    (define-key map (kbd "l") 'kodi-remote-episode-toggle-visibility)
-    map)
-  "Keymap for `kodi-remote-playlist-mode'.")
-
 
 (defun spiderbit-get-name (episode)
   "Return the name of a EPISODE."
@@ -630,12 +554,42 @@ Key bindings:
   (- (cdr (assoc 'episode show))
      (cdr (assoc 'watchedepisodes show))))
 
+(defun kodi-remote-sit-for-done ()
+  "Sits till the last json request is done."
+  (while kodi-request-running (sit-for 0.05)))
+
+(defun kodi-remote-series-episodes-wrapper (button)
+  "Set the selected show and then displays episodes.
+Argument BUTTON contains the show-id"
+  (unless (equal button nil)
+    (setq kodi-selected-show (button-get button 'id)))
+  (kodi-remote-series-episodes))
+
+(defun kodi-generate-series-entry (item)
+  "Generate tabulated-list entry for kodi media buffers.
+Argument ITEM the media data form kodi"
+  (let* ((number-of-episodes (kodi-show-get-number-of-unwatched item)))
+    (when (or (> number-of-episodes 0) kodi-unseen-visible)
+      (list (spiderbit-get-id item)
+	    (vector `(,(spiderbit-get-name item)
+		      action kodi-remote-series-episodes-wrapper
+		      id ,(spiderbit-get-show-id item))
+		    `(,(number-to-string number-of-episodes)
+		      action kodi-remote-draw-episodes
+		      id ,(spiderbit-get-show-id item)))))))
+
+(defun kodi-remote-draw ()
+  "Draw the buffer with new contents via `kodi-refresh-function'."
+  (with-silent-modifications
+    (funcall kodi-remote-refresh-function ;; transmission-torrent-id
+)))
+
 ;;;###autoload
-(defun kodi-remote-draw-episodes (&optional obj)
-  "Draws a list of episodes of all or a specific show.
-Optional argument OBJ containes the specific show."
+(defun kodi-remote-draw-episodes (&optional _arg _noconfirm)
+  "Draw a list of episodes of all or a specific show.
+Optional argument _ARG revert excepts this param.
+Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format [("Episodes" 30 t)])
   (kodi-remote-video-scan)
   (if kodi-unseen-visible
       (kodi-remote-get-series-episodes kodi-selected-show)
@@ -652,52 +606,29 @@ Optional argument OBJ containes the specific show."
     (tabulated-list-init-header)
     (tabulated-list-print)))
 
-
-(defun kodi-remote-sit-for-done ()
-  "Sits till the last json request is done."
-  (while kodi-request-running (sit-for 0.05)))
-
 ;;;###autoload
-(defun kodi-remote-draw-shows ()
-  "Draws a list of shows."
+(defun kodi-remote-draw-shows (&optional _arg _noconfirm)
+  "Draw a list of shows.
+Optional argument _ARG revert excepts this param.
+Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format [("Shows" 30 t) ("unseen" 10 t)])
   (kodi-remote-video-scan)
   (kodi-remote-sit-for-done)
   (kodi-remote-get-show-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil
-  		(mapcar 'kodi-generate-entries
-  			(let-alist kodi-properties .tvshows ))))
+  		(mapcar 'kodi-generate-series-entry
+  			(let-alist kodi-properties .tvshows))))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
-(defun kodi-remote-series-episodes-wrapper (obj)
-  "docstring"
-  (unless (equal obj nil)
-    (setq kodi-selected-show (button-get obj 'id)))
-  (kodi-remote-series-episodes))
-
-
-(defun kodi-generate-entries (item)
-  "Generate tabulated-list entries for kodi media buffers"
-  (let* ((number-of-episodes (kodi-show-get-number-of-unwatched item)))
-    (when (or (> number-of-episodes 0) kodi-unseen-visible)
-      (list (spiderbit-get-id item)
-	    (vector `(,(spiderbit-get-name item)
-		      action kodi-remote-series-episodes-wrapper
-		      id ,(spiderbit-get-show-id item))
-		    `(,(number-to-string number-of-episodes)
-		      action kodi-remote-draw-episodes
-		      id ,(spiderbit-get-show-id item)))))))
-
-
 ;;;###autoload
-(defun kodi-remote-playlist-draw ()
-  "Draws the current playlist."
+(defun kodi-remote-playlist-draw (&optional _arg _noconfirm)
+  "Draw the current playlist.
+Optional argument _ARG revert excepts this param.
+Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format [("Entry" 30 t)])
   (kodi-remote-playlist-get)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries '())
@@ -713,50 +644,117 @@ Optional argument OBJ containes the specific show."
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
     (define-key map (kbd "k") 'kodi-remote-keyboard)
-    (define-key map (kbd "g") 'kodi-remote-playlist-draw)
-    ;; (define-key map (kbd "q") 'kodi-remote-playlist-draw)
-    (define-key map (kbd "n") 'kodi-remote-playlist-next)
-    (define-key map (kbd "d") 'kodi-remote-playlist-remove)
+    ;; (define-key map (kbd "n") 'kodi-remote-playlist-next)
+    ;; (define-key map (kbd "d") 'kodi-remote-playlist-remove)
     (define-key map (kbd "a") 'kodi-remote-playlist-add-url)
     map)
   "Keymap for `kodi-remote-playlist-mode'.")
 
+(defvar kodi-remote-series-episodes-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "k") 'kodi-remote-keyboard)
+    (define-key map (kbd "l") 'kodi-remote-episode-toggle-visibility)    
+    map)
+  "Keymap for `kodi-remote-playlist-mode'.")
+
+(defvar kodi-remote-series-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "k") 'kodi-remote-keyboard)
+    (define-key map (kbd "g") 'kodi-remote-draw-shows)
+    (define-key map (kbd "c") 'kodi-remote-series-clean)
+    (define-key map (kbd "s") 'kodi-remote-series-scan)
+    (define-key map (kbd "l") 'kodi-remote-series-toggle-visibility)
+    map)
+  "Keymap for `kodi-remote-series-mode'.")
+
+(define-derived-mode kodi-remote-series-mode tabulated-list-mode "kodi-remote-series"
+  "Major Mode for kodi series.
+Key bindings:
+\\{kodi-remote-series-mode-map}"
+  (setq tabulated-list-format
+        `[("Name" 30 t)
+          ("unseen" 10 t)])
+  ;; (transmission-tabulated-list-format)
+  ;; (setq kodi-refresh-function #'kodi-remote-draw-shows)
+  ;; (setq kodi-refresh-function nil)
+  (setq-local revert-buffer-function #'kodi-remote-draw-shows)
+  ;; (add-hook 'post-command-hook #'transmission-timer-check nil t)
+  ;; (add-hook 'before-revert-hook #'transmission-tabulated-list-format nil t)
+  )
+
+(define-derived-mode kodi-remote-series-episodes-mode tabulated-list-mode "kodi-remote-series-episodes"
+  "Major Mode for kodi series.
+Key bindings:
+\\{kodi-remote-series-episodes-mode-map}"
+  (setq tabulated-list-format
+        `[("Episodes" 30 t)])
+  (setq-local revert-buffer-function #'kodi-remote-draw-episodes))
+
 (define-derived-mode kodi-remote-playlist-mode tabulated-list-mode "kodi-remote-playlist"
   "Major Mode for kodi playlists.
 Key bindings:
-\\{kodi-remote-playlist-mode-map}")
+\\{kodi-remote-playlist-mode-map}"
+  (setq tabulated-list-format
+        `[("Entry" 30 t)])
+  (setq-local revert-buffer-function #'kodi-remote-playlist-draw))
+
+;;;###autoload
+(defun kodi-remote-series-episodes ()
+  "Open a `kodi-remote-series-episodes-mode' buffer."
+  (interactive)
+  (kodi-remote-context kodi-remote-series-episodes-mode))
+
+;;;###autoload
+(defun kodi-remote-series ()
+  "Open a `kodi-remote-series-mode' buffer."
+  (interactive)
+  (kodi-remote-context kodi-remote-series-mode))
 
 ;;;###autoload
 (defun kodi-remote-playlist ()
   "Open a `kodi-remote-playlist-mode' buffer."
   (interactive)
-  (let* ((name "*kodi-remote-playlist*")
-         (buffer (or (get-buffer name)
-                     (generate-new-buffer name))))
-    (unless (eq buffer (current-buffer))
-      (with-current-buffer buffer
-        (unless (eq major-mode 'kodi-remote-playlist-mode)
-          (condition-case e
-              (progn
-		(kodi-remote-playlist-mode)
-		(kodi-remote-playlist-draw)
-		)
-            (error
-             (kill-buffer buffer)
-             (signal (car e) (cdr e))))))
-      (switch-to-buffer-other-window buffer))))
+  (kodi-remote-context kodi-remote-playlist-mode))
 
-
-;; (kodi-remote-get-episode-details 343)
-
-;; (define-derived-mode kodi-remote-mode tabulated-list-mode "kodi-remote"
-;;   "Major mode for remote controlling kodi instance
-;; Key bindings:
-;; \\{kodi-remote-mode-map}"
-;;   (setq tabulated-list-format [("choice" 10 t)])
-;;   (setq tabulated-list-entries '((nil ["Keyboard"])(nil ["Series"])(nil ["Movies"])(nil ["Music"])))
-;;   (tabulated-list-init-header)
-;;   (tabulated-list-print))
+(defmacro kodi-remote-context (mode)
+  "Switch to a context buffer of major mode MODE."
+  (cl-assert (string-suffix-p "-mode" (symbol-name mode)))
+  (let ((name (make-symbol "name")))
+    `(let (;; (id (or transmission-torrent-id
+           ;;         (cdr (assq 'id (tabulated-list-get-id)))))
+           (,name ,(format "*%s*" (string-remove-suffix "-mode" (symbol-name mode)))))
+       (if nil (user-error "No media selected")
+         (let ((buffer (or (get-buffer ,name)
+                           (generate-new-buffer ,name))))
+           (with-current-buffer buffer
+             (unless (eq major-mode ',mode)
+	       (funcall #',mode))
+	     (if t ;; (and old-id (eq old-id id))
+		 (revert-buffer)
+	       ;; (setq transmission-torrent-id id)
+	       (kodi-remote-draw)
+	       ;; (goto-char (point-min))
+	       ))
+           (pop-to-buffer-same-window buffer))))))
 
 (provide 'kodi-remote)
 ;;; kodi-remote.el ends here
+
+;; (easy-menu-define kodi-remote-mode-menu kodi-remote-mode-map
+;;   "Menu used in `kodi-remote-mode' buffers."
+;;   '("Kodi"
+;;     ["Series" kodi-remote-series]
+;;     ["Add Media" kodi-remote-add
+;;      :help "Add Media to the playlist"]
+;;     "--"
+;;     ;; ["View Series" kodi-remote-series]
+;;     ;; ["View playlist" kodi-remote-playlist]
+;;     ;; ["View Movies" kodi-remote-movies]
+;;     ;; ["View Music" kodi-remote-music]
+;;     "--"
+;;     ["Refresh" revert-buffer]
+;;     ;; ["Quit" kodi-quit]
+;;     ))
+
