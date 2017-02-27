@@ -654,7 +654,8 @@ Optional argument _NOCONFIRM revert excepts this param."
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
     (define-key map (kbd "k") 'kodi-remote-keyboard)
-    (define-key map (kbd "l") 'kodi-remote-episode-toggle-visibility)    
+    (define-key map (kbd "l") 'kodi-remote-episode-toggle-visibility)
+    (define-key map (kbd "d") 'kodi-remote-delete)
     map)
   "Keymap for `kodi-remote-playlist-mode'.")
 
