@@ -21,6 +21,9 @@ to use the video website play feature you must install youtube-dl on your machin
     (require 'kodi-remote)
     (setq kodi-host-name "my-htpc:8080")
 
+### set the network interface you connect over to kodi (optional only testet under linux)
+	(setq kodi-network-interface "enp0s25")
+
 you need a running kodi instance of course!
 
 ## Using
@@ -36,6 +39,9 @@ you need a running kodi instance of course!
 
 ### starts music playback in party mode
     M-x kodi-remote-play-music RET
+
+### opens the kodi video playlist
+    M-x kodi-remote-playlist RET
 
 ## Contributing
 
