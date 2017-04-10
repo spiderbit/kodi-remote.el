@@ -11,10 +11,10 @@
 ;; (require 'ert)
 (add-to-list 'load-path "~/.emacs.d/config/")
 (require 'kodi-remote)
-;; (setq kodi-host-name "localhost:8080")
+;; (setq kodi-host-name "mars:8080")
 
-;; (ert-deftest fullscreen-test ()
-;;   (should (booleanp (kodi-remote-is-fullscreen))))
+(ert-deftest fullscreen-test ()
+  (should (booleanp (kodi-remote-is-fullscreen))))
 
 (ert-deftest volume-test ()
   (should (integerp (kodi-remote-get-volume))))
@@ -39,18 +39,12 @@
   (should (string-equal "*kodi-remote-playlist*" (buffer-name))))
 
 
-;; (ert-deftest playlist-add-test ()
-;;   (sit-for 2)
-;;   ;; (kodi-remote-playlist)
-;;   (sit-for 1)
-;;   (kodi-remote-playlist-clear)
-;;   (kodi-remote-playlist-add-url "http://example.org/video.avi")
-;;   ;; (sit-for 1)
-;;   (revert-buffer)
-;;   ;; (sit-for 1)
-;;   (revert-buffer)
-;;   ;; (sit-for 1)
-;;   (should (equal (buffer-substring 1 (buffer-size)) "video.avi"))
-;;   )
+(ert-deftest playlist-add-test ()
+  (kodi-remote-playlist)
+  ;; (kodi-remote-playlist-clear)
+  (kodi-remote-playlist-add-url "http://example.org/video.avi")
+  (sit-for 0.4)
+  (revert-buffer)
+  (should (equal (buffer-substring 1 (buffer-size)) "video.avi")))
 
 

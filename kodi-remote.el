@@ -177,7 +177,6 @@ Argument DIRECTION which direction and how big of step to seek."
   "Toggle Fullscreen."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (sit-for 0.01)
   (let* ((params
 	  `(("params" . (("fullscreen" . "toggle"))))))
     (kodi-remote-post "Gui.SetFullScreen" params)))
@@ -461,7 +460,7 @@ Argument ID kodi series database identifier."
 (defun kodi-remote-get-active-player-id ()
   "Update currently active player."
   (kodi-remote-get "Player.GetActivePlayers" nil)
-  (sit-for 0.1)
+  (kodi-remote-sit-for-done)
   (setq kodi-active-player ( let-alist (elt kodi-properties 0) .playerid)))
 
 ;;;###autoload
@@ -482,7 +481,6 @@ Argument ID kodi series database identifier."
   (let* ((params
 	  '(("params" . (("properties" . ("fullscreen")))))))
     (kodi-remote-get "Gui.GetProperties" params))
-  (kodi-sit-for-done)
   (let-alist kodi-properties .fullscreen))
 
 (defun kodi-remote-playlist-goto (pos)
@@ -816,7 +814,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 			    "None"))
 		    (entry (list `,id (vector `(,title
 						action sbit-action-playlist
-						id ,(insert )d)))))
+						id ,id)))))
 	       (setq id (1+ id))
 	       entry))
 	   items)))
