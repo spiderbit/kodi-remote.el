@@ -11,6 +11,8 @@
 ;; (require 'ert)
 (add-to-list 'load-path "~/.emacs.d/config/")
 (require 'kodi-remote)
+(setq-local kodi-host-name "localhost:8080")
+
 ;; (setq kodi-host-name "mars:8080")
 
 (ert-deftest fullscreen-test ()
@@ -22,7 +24,7 @@
 (ert-deftest volume-complex-test ()
   (dotimes (x 20) (kodi-remote-volume-decrease))
   (should (eql (kodi-remote-get-volume )0))
-  (dotimes (x 9) (kodi-remote-volume-increase))
+  (dotimes (x 9) (kodi-remote-volume-increase)(sit-for 0.05))
   (should (eql (kodi-remote-get-volume )90)))
 
 
@@ -37,6 +39,17 @@
 (ert-deftest playlist-window-open-test ()
   (kodi-remote-playlist)
   (should (string-equal "*kodi-remote-playlist*" (buffer-name))))
+
+(ert-deftest music-window-open-test ()
+  ;; (setq kodi-host-name "localhost:8080")
+  (kodi-remote-music)
+  (should (equal [("Artists" 30 t)] tabulated-list-format))
+  (should (string-equal "*kodi-remote-music*" (buffer-name)))
+  (should (string-equal "Ash Turner" (buffer-substring 1 (buffer-size))))
+  (push-button)
+  (should (equal [("Songs" 30 t)] tabulated-list-format))
+  (should (string-equal "*kodi-remote-songs*" (buffer-name)))
+  (should (string-equal "Leaping Leopards\nSt Columba's Twist\nTrichotomy\nLow Pressure" (buffer-substring 1 (buffer-size)))))
 
 
 (ert-deftest playlist-complex-test ()

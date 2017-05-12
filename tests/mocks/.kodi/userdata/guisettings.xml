@@ -386,7 +386,7 @@
         <preferedstereoscopicmode default="true">100</preferedstereoscopicmode>
         <resolution default="true">16</resolution>
         <screen default="true">0</screen>
-        <screenmode default="true">DESKTOP</screenmode>
+        <screenmode>WINDOW</screenmode>
         <stereoscopicmode default="true">0</stereoscopicmode>
         <vsync default="true">3</vsync>
     </videoscreen>

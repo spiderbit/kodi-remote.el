@@ -461,6 +461,10 @@ Optional argument SHOW-ID limits to a specific show."
   "Update availible/new videos."
   (kodi-remote-post "VideoLibrary.Scan" nil))
 
+(defun kodi-remote-audio-scan ()
+  "Update availible/new videos."
+  (kodi-remote-post "AudioLibrary.Scan" nil))
+
 (defun kodi-remote-get-episode-details (id)
   "Poll details of a episode.
 Argument ID kodi series database identifier."
