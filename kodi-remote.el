@@ -77,7 +77,8 @@
   "Function to send post requests to the kodi instance.
 Argument METHOD kodi json api argument.
 Argument PARAMS kodi json api argument."
-  (let* ((request-data
+  (let* ((default-directory "~")
+	 (request-data
 	  `(("id" . 0)
 	   ("jsonrpc" . "2.0")
 	   ("method" . ,method))))
@@ -98,7 +99,8 @@ Argument PARAMS kodi json api argument."
 Argument METHOD kodi json api argument.
 Argument PARAMS kodi json api argument."
   (setq kodi-request-running t)
-  (let* ((request-data
+  (let* ((default-directory "~")
+	 (request-data
 	  `(("id" . 0)
 	    ("jsonrpc" . "2.0")
 	    ("method" . ,method))))
@@ -200,15 +202,16 @@ Argument DIRECTION which direction and how big of step to seek."
 
 (defun kodi-remote-input (input)
   "Function to send post INPUT json requests."
-  (request
-   (kodi-json-url)
-   :type "POST"
-   :data (json-encode `(("id" . 1)
-			("jsonrpc" . "2.0")
-			("method" . ,input)
-			))
-   :headers '(("Content-Type" . "application/json"))
-   :parser 'json-read))
+  (let ((default-directory "~"))
+    (request
+     (kodi-json-url)
+     :type "POST"
+     :data (json-encode `(("id" . 1)
+			  ("jsonrpc" . "2.0")
+			  ("method" . ,input)
+			  ))
+     :headers '(("Content-Type" . "application/json"))
+     :parser 'json-read)))
 
 (defun kodi-remote-input-execute-action (action)
   "Function to send post ACTION json requests."
@@ -524,7 +527,8 @@ Argument ID kodi series database identifier."
 (defun kodi-remote-play-url (url)
   "Plays either direct links to video files or plugin play command URLs."
   (interactive "surl: ")
-  (let* ((json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")
+  (let* ((default-directory "~")
+	 (json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")
 			      ("params" . (("item" .  (("file" . ,url)))))))))
     (request
      (kodi-json-url)
