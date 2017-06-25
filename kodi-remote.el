@@ -43,7 +43,11 @@
 (require 'subr-x)
 (require 'elnode)
 
-(defvar kodi-host-name "localhost:8080")
+(defcustom kodi-host-name "localhost:8080"
+  "Host to access Kodi remote control."
+  :type 'string
+  :group 'kodi-remote)
+
 (defvar kodi-active-player -1)
 (defvar kodi-active-window nil)
 (defvar kodi-fullscreen nil)
