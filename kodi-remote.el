@@ -773,36 +773,18 @@ Argument ITEM the media data form kodi"
 		      id ,tvshowid))))))
 
 
-(defun kodi-generate-music-entry (item)
+(defun kodi-generate-entry (action id item)
   "Generate tabulated-list entry for kodi media buffers.
 Argument ITEM the media data form kodi"
   (let* ((number-of-nodes 5)
-	 (subitemid (assoc-default 'artistid item))
+	 (subitemid (assoc-default id item))
 	 (label (decode-coding-string (assoc-default 'label item) 'utf-8))
-	 (itemid (assoc-default 'artistid item)))
+	 (itemid (assoc-default id item)))
     (when (or (> number-of-nodes 0) kodi-unseen-visible)
       (list subitemid
 	    (vector `(,label
-		      action kodi-remote-songs-wrapper
-		      id , itemid)
-		    ;; `(,(number-to-string number-of-episodes)
-		    ;;   action kodi-remote-draw-episodes
-		    ;;   id ,tvshowid)
-		    )))))
-
-(defun kodi-generate-song-entry (item)
-  "Generate tabulated-list entry for kodi media buffers.
-Argument ITEM the media data form kodi"
-  (let* ((number-of-nodes 5)
-	 (subitemid (assoc-default 'songid item))
-	 (label (decode-coding-string (assoc-default 'label item) 'utf-8))
-	 (itemid (assoc-default 'songid item)))
-    (when (or (> number-of-nodes 0) kodi-unseen-visible)
-      (list subitemid
-	    (vector `(,label
-		      action sbit-action-song
-		      id , itemid)
-		    )))))
+		      action ,action
+		      id , subitemid))))))
 
 (defun kodi-remote-draw ()
   "Draw the buffer with new contents via `kodi-refresh-function'."
@@ -841,7 +823,8 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil
-  		(mapcar 'kodi-generate-song-entry
+  		(mapcar (apply-partially 'kodi-generate-entry
+					 'sbit-action-song 'songid)
   			(let-alist kodi-properties .songs))))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -869,18 +852,15 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  ;; (kodi-remote-video-scan)
-  ;; (kodi-remote-sit-for-done)
   (kodi-remote-get-artist-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil
-  		(mapcar 'kodi-generate-music-entry
+  		(mapcar (apply-partially 'kodi-generate-entry
+					 'kodi-remote-songs-wrapper 'artistid)
   			(let-alist kodi-properties .artists))))
   (tabulated-list-init-header)
   (tabulated-list-print))
-
-
 
 
 ;;;###autoload
