@@ -314,16 +314,6 @@ Argument DIRECTION which direction and how big of step to seek."
   (kodi-remote-sit-for-done)
   (setq kodi-volume (let-alist kodi-properties .volume)))
 
-(defun kodi-remote-get-series-episodes (&optional show-id)
-  "Poll availible series episodes.
-Optional argument SHOW-ID limits to a specific show."
-  (let* ((params
-	      `(("params" . (( "tvshowid" . ,show-id )
-			     ))
-		)
-	      ))
-    (kodi-remote-get "VideoLibrary.GetEpisodes" params)))
-
 (defun kodi-remote-get-songs (&optional id)
   "Poll list of songs.
 Optional argument ID limits to a specific artist."
@@ -332,21 +322,21 @@ Optional argument ID limits to a specific artist."
 			  (("artistid". ,id))))))))
     (kodi-remote-get "AudioLibrary.GetSongs" params)))
 
-(defun kodi-remote-get-unwatched-series-episodes (&optional show-id)
+(defun kodi-remote-get-series-episodes (&optional show-id filter-watched)
   "Poll unwatches episodes from show.
 Optional argument SHOW-ID limits to a specific show."
   ;; (setq show-id nil)
   (let* ((filter '("filter" . (("field" . "playcount")
-			     ("operator" . "lessthan")
-			     ("value" . "1" ))))
-	 (params (if (integerp show-id)
-		     `(("params" . (("tvshowid" . ,show-id)
-				    ("properties" .
-				     ["title" "episode"])
-				    ,filter)))
-		   `(("params" . (("properties" .
-				   ["title" "watchedepisodes" "episode"])
-				  ,filter))))))
+			       ("operator" . "lessthan")
+			       ("value" . "1" ))))
+	 (pre-params (if (integerp show-id)
+			 `(("tvshowid" . ,show-id)
+			   ("properties" . ["title" "episode"]))
+		       `(("properties" .
+			   ["title" "watchedepisodes" "episode"]))
+		       ))
+	 (params (list (append '("params") pre-params
+			       (if filter-watched `(,filter))))))
     (kodi-remote-get "VideoLibrary.GetEpisodes" params)))
 
 (defun kodi-remote-get-show-list ()
@@ -827,9 +817,8 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
-  (if kodi-unseen-visible
-      (kodi-remote-get-series-episodes kodi-selected-show)
-      (kodi-remote-get-unwatched-series-episodes kodi-selected-show))
+  (kodi-remote-get-series-episodes kodi-selected-show
+				   (not kodi-unseen-visible))
   (kodi-remote-sit-for-done)
   (let* ((entries '()))
     (dolist (episode (append (let-alist kodi-properties .episodes) nil))
