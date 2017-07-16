@@ -336,31 +336,18 @@ Optional argument ID limits to a specific artist."
   "Poll unwatches episodes from show.
 Optional argument SHOW-ID limits to a specific show."
   ;; (setq show-id nil)
-  (if (integerp show-id)
-      (let* ((params
-	      `(("params" . (( "tvshowid" . ,show-id )
-			     ("filter" .
-			      (("field" . "playcount")
-			       ("operator" . "lessthan")
-			       ("value" . "1" ))
-			      )
-			     ("properties" .
-			      ["title" "episode"])
-			     ))
-		)
-	      ))
-	(kodi-remote-get "VideoLibrary.GetEpisodes" params))
-    (let* ((params
-	    '(("params" . (("properties" .
-			    ["title" "watchedepisodes" "episode"])
-			   ("filter" .
-			    (("field" . "playcount")
+  (let* ((filter '("filter" . (("field" . "playcount")
 			     ("operator" . "lessthan")
-			     ("value" . "1" ))
-			    ))
-	       )
-	      )))
-      (kodi-remote-get "VideoLibrary.GetEpisodes" params))))
+			     ("value" . "1" ))))
+	 (params (if (integerp show-id)
+		     `(("params" . (("tvshowid" . ,show-id)
+				    ("properties" .
+				     ["title" "episode"])
+				    ,filter)))
+		   `(("params" . (("properties" .
+				   ["title" "watchedepisodes" "episode"])
+				  ,filter))))))
+    (kodi-remote-get "VideoLibrary.GetEpisodes" params)))
 
 (defun kodi-remote-get-show-list ()
   "Poll unwatched show."
