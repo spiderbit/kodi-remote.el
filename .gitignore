@@ -1,3 +1,4 @@
 *.elc
 /BeautifulOpenSpacesTrioTracks.zip
 tests/HOME
+/tests/mocks/.kodi/userdata/Database/MyVideos107.db
