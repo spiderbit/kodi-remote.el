@@ -223,46 +223,38 @@ Argument DIRECTION which direction and how big of step to seek."
 	  `(("params" . (("action" . ,action))))))
     (kodi-remote-post "Input.ExecuteAction" params)))
 
+(defun kodi-remote-input-direct (seek input)
+  "Move horizontal in menu or seek big forward/backward."
+  (kodi-remote-get-active-window)
+  (sit-for 0.01)
+  (if (string-equal kodi-active-window "Fullscreen video")
+      (kodi-remote-player-seek seek)
+    (kodi-remote-input input)))
+
 ;; todo: need to compare to other active windows (like musik) for actions.
 ;;;###autoload
 (defun kodi-remote-input-left ()
   "Move left in menu or seek small backward."
   (interactive)
-  (kodi-remote-get-active-window)
-  (sit-for 0.01)
-  (if (string-equal kodi-active-window "Fullscreen video")
-      (kodi-remote-player-seek "smallbackward")
-    (kodi-remote-input "Input.Left")))
+  (kodi-remote-input-direct "smallbackward" "Input.Left"))
 
 ;;;###autoload
 (defun kodi-remote-input-right ()
   "Move right in menu or seek small forward."
   (interactive)
-  (kodi-remote-get-active-window)
-  (sit-for 0.01)
-  (if (string-equal kodi-active-window "Fullscreen video")
-      (kodi-remote-player-seek "smallforward")
-    (kodi-remote-input "Input.Right")))
+  (kodi-remote-input-direct "smallforward" "Input.Right"))
 
 ;;;###autoload
 (defun kodi-remote-input-up ()
   "Move up in menu or seek big forward."
   (interactive)
-  (kodi-remote-get-active-window)
-  (sit-for 0.01)
-  (if (string-equal kodi-active-window "Fullscreen video")
-      (kodi-remote-player-seek "bigforward")
-    (kodi-remote-input "Input.Up")))
+  (kodi-remote-input-direct "bigforward" "Input.Up"))
 
 ;;;###autoload
 (defun kodi-remote-input-down ()
   "Move down in menu or seek big backward."
   (interactive)
-  (kodi-remote-get-active-window)
-  (sit-for 0.01)
-  (if (string-equal kodi-active-window "Fullscreen video")
-      (kodi-remote-player-seek "bigbackward")
-    (kodi-remote-input "Input.Down")))
+  (kodi-remote-input-direct "bigbackward" "Input.Down"))
 
 ;;;###autoload
 (defun kodi-remote-input-back ()
