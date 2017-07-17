@@ -345,6 +345,7 @@ Optional argument SHOW-ID limits to a specific show."
 			  ["genre"]))))))
   (kodi-remote-get "AudioLibrary.GetArtists" params)))
 
+;;;###autoload
 (defun kodi-remote-playlist-add-episode ()
   "Add episode to playlist."
   (interactive)
@@ -354,6 +355,7 @@ Optional argument SHOW-ID limits to a specific show."
 		      (("episodeid" . ,(tabulated-list-get-id)))))))))
     (kodi-remote-post "Playlist.Add" params)))
 
+;;;###autoload
 (defun kodi-remote-playlist-play ()
   "Add episode to playlist."
   (interactive)
@@ -361,6 +363,7 @@ Optional argument SHOW-ID limits to a specific show."
 		    (("item" . (("playlistid" . 1))))))))
     (kodi-remote-post "Player.Open" params)))
 
+;;;###autoload
 (defun kodi-remote-playlist-clear ()
   "Add episode to playlist."
   (interactive)
@@ -375,7 +378,6 @@ Optional argument SHOW-ID limits to a specific show."
 ;;    (elnode-webserver-handler-maker "/tmp/webroot/")
 ;;    )
 
-
 (defun kodi-remote-playlist-add-url (url)
   "Add item/video to playlist."
   (interactive "sUrl: ")
@@ -383,14 +385,13 @@ Optional argument SHOW-ID limits to a specific show."
 				("item" . (("file" . ,url))))))))
     (kodi-remote-post "Playlist.Add" params)))
 
-
+;;;###autoload
 (defun kodi-remote-playlist-remove ()
   "Remove item/video from playlist."
   (interactive)
   (let* ((params `(("params" . (("playlistid" . 1)
 				("position" . ,(tabulated-list-get-id)))))))
     (kodi-remote-post "Playlist.Remove" params)))
-
 
 (defun kodi-remote-playlist-get ()
   "Requests playlist items."
@@ -399,33 +400,34 @@ Optional argument SHOW-ID limits to a specific show."
 			 ("playlistid" . 1))))))
     (kodi-remote-get "Playlist.GetItems" params)))
 
+(defun kodi-remote-playlist-swap (direction)
+  "Moves item/video up in the playlist."
+  (let* ((position1 (tabulated-list-get-id))
+	 (difference '(("up" . -1) ("down" . 1))))
+    (if position1
+	(let ((position2 (+ position1 (assoc-default direction difference)))
+	      (max (length tabulated-list-entries))
+	      (positions (sort `(,position1 ,position2) '<)))
+	  (if (<= 0 (nth 0 positions) (nth 1 positions) max)
+	      (let* ((params `(("params"
+				. (("playlistid" . 1)
+				   ("position1" . ,position1)
+				   ("position2" . ,position2))))))
+		(kodi-remote-post "Playlist.Swap" params))
+	    ;; (kodi-remote-playlist-draw)
+	    )))))
+
+;;;###autoload
 (defun kodi-remote-playlist-move-up ()
   "Moves item/video up in the playlist."
   (interactive)
-  (let* ((position1 (tabulated-list-get-id))
-	 (position2 (1- position1)))
-    (if (>= position2 0)
-	(let* ((params `(("params"
-			  . (("playlistid" . 1)
-			     ("position1" . ,position1)
-			     ("position2" . ,position2))))))
-	  (kodi-remote-post "Playlist.Swap" params))
-      ;; (kodi-remote-playlist-draw)
-      )))
+  (kodi-remote-playlist-swap "up"))
 
+;;;###autoload
 (defun kodi-remote-playlist-move-down ()
   "Moves item/video up in the playlist."
   (interactive)
-  (let* ((position1 (tabulated-list-get-id))
-	 (position2 (1+ position1)))
-    (if (< position2 (length (cdr ( assoc 'items kodi-properties))))
-	(let* ((params `(("params"
-			  . (("playlistid" . 1)
-			     ("position1" . ,position1)
-			     ("position2" . ,position2))))))
-	  (kodi-remote-post "Playlist.Swap" params))
-      ;; (kodi-remote-playlist-draw)
-      )))
+  (kodi-remote-playlist-swap "down"))
 
 ;; (defun kodi-remote-playlists-get ()
 ;;   "Requests playlist items."
