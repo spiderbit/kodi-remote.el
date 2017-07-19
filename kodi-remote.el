@@ -317,7 +317,6 @@ Optional argument ID limits to a specific artist."
 (defun kodi-remote-get-series-episodes (&optional show-id filter-watched)
   "Poll unwatches episodes from show.
 Optional argument SHOW-ID limits to a specific show."
-  ;; (setq show-id nil)
   (let* ((filter '("filter" . (("field" . "playcount")
 			       ("operator" . "lessthan")
 			       ("value" . "1" ))))
@@ -405,10 +404,10 @@ Optional argument SHOW-ID limits to a specific show."
   (let* ((position1 (tabulated-list-get-id))
 	 (difference '(("up" . -1) ("down" . 1))))
     (if position1
-	(let ((position2 (+ position1 (assoc-default direction difference)))
+	(let* ((position2 (+ position1 (assoc-default direction difference)))
 	      (max (length tabulated-list-entries))
-	      (positions (sort `(,position1 ,position2) '<)))
-	  (if (<= 0 (nth 0 positions) (nth 1 positions) max)
+	      (positions `(,position1 ,position2)))
+	  (if (<= 0 (seq-min positions) (seq-max positions) max)
 	      (let* ((params `(("params"
 				. (("playlistid" . 1)
 				   ("position1" . ,position1)
