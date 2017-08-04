@@ -401,20 +401,19 @@ Optional argument SHOW-ID limits to a specific show."
 
 (defun kodi-remote-playlist-swap (direction)
   "Moves item/video up in the playlist."
-  (let* ((position1 (tabulated-list-get-id))
-	 (difference '(("up" . -1) ("down" . 1))))
-    (if position1
-	(let* ((position2 (+ position1 (assoc-default direction difference)))
-	      (max (length tabulated-list-entries))
-	      (positions `(,position1 ,position2)))
-	  (if (<= 0 (seq-min positions) (seq-max positions) max)
-	      (let* ((params `(("params"
-				. (("playlistid" . 1)
-				   ("position1" . ,position1)
-				   ("position2" . ,position2))))))
-		(kodi-remote-post "Playlist.Swap" params))
-	    ;; (kodi-remote-playlist-draw)
-	    )))))
+  (if-let ((position1 (tabulated-list-get-id))
+	   (difference '(("up" . -1) ("down" . 1)))
+	   (position2 (+ position1 (assoc-default direction difference)))
+	   (max (length tabulated-list-entries))
+	   (positions (list position1 position2))
+	   (eval (cons 'and (mapcar (lambda (x)(<= 0 x max)) positions)))
+	   (params `(("params"
+		      . (("playlistid" . 1)
+			 ("position1" . ,position1)
+			 ("position2" . ,position2))))))
+      (kodi-remote-post "Playlist.Swap" params)
+    ;; (kodi-remote-playlist-draw)
+    ))
 
 ;;;###autoload
 (defun kodi-remote-playlist-move-up ()
