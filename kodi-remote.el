@@ -42,12 +42,22 @@
 (require 'let-alist)
 (require 'subr-x)
 (require 'elnode)
-
 (defcustom kodi-host-name "localhost:8080"
   "Host to access Kodi remote control."
   :type 'string
   :group 'kodi-remote)
-
+(defcustom kodi-dangerous-options nil
+  "Option to give access for destructive operations."
+  :type 'boolean
+  :group 'kodi-remote)
+(defcustom kodi-access-host nil
+  "Host to access media over tramp."
+  :type 'string
+  :group 'kodi-remote)
+(defcustom kodi-access-method "ssh"
+  "Method to access media over tramp."
+  :type 'string
+  :group 'kodi-remote)
 (defvar kodi-active-player -1)
 (defvar kodi-active-window nil)
 (defvar kodi-fullscreen nil)
@@ -680,11 +690,34 @@ Key bindings:
   (kodi-remote-draw-shows))
 
 (defun kodi-remote-delete ()
-  "Deletes episode."
+  "Delete episode over tramp.
+For it to work ‘kodi-dangerous-options’ must be set to t
+and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
   (interactive)
-  (let* ((params
-	  `(("params" . (("episodeid" . ,(tabulated-list-get-id)))))))
-    (kodi-remote-post "VideoLibrary.RemoveEpisode" params)))
+  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
+      (progn
+	(let* ((params
+		`(("params" .
+		   (("episodeid" . ,(tabulated-list-get-id))
+		    ("properties" . ("file")))))))
+	  (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
+	(kodi-remote-sit-for-done)
+	(let* ((default-directory
+		 (concat "/" kodi-access-method
+			 ":" kodi-access-host ":/"))
+	       (file-name
+		(substring
+		 (decode-coding-string
+		  (let-alist
+		      kodi-properties .episodedetails.file)
+		  'utf-8)
+		 1)))
+	  (if (file-writable-p file-name )
+	      (delete-file file-name)))
+	(let* ((params
+		`(("params" . (("episodeid" .
+				,(tabulated-list-get-id)))))))
+	  (kodi-remote-post "VideoLibrary.RemoveEpisode" params)))))
 
 (defun kodi-remote-series-clean ()
   "Cleans video library."

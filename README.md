@@ -24,6 +24,12 @@ to use the video website play feature you must install youtube-dl on your machin
 ### set the network interface you connect over to kodi (optional only testet under linux)
 	(setq kodi-network-interface "enp0s25")
 
+### OPTIONAL: setup settings for deleting files (over tramp)
+	(setq kodi-dangerous-options t)
+	(setq kodi-access-host "my-htpc")
+	if you don't use ssh to access your kodi server / nas:
+	(setq kodi-access-method "smb/ftp/adb...")
+
 you need a running kodi instance of course!
 
 ## Using
