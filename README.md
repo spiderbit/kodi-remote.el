@@ -34,10 +34,12 @@ you need a running kodi instance of course!
 
 ## Using
 
-### starts kodi series mode Shows you a list of your series, from where you can navigate through your series and start them.
+### open kodi media buffers to view movies/series/music, here you can navigate through your media files and play them.
+    M-x kodi-remote-movies
     M-x kodi-remote-series
+    M-x kodi-remote-music
 
-### starts kodi remote major mode Control kodi like with a physical connected keyboard
+### open kodi remote major mode, Control kodi like with a physical connected keyboard
     M-x kodi-remote-keyboard RET
 
 ### starts playback of the youtube video
