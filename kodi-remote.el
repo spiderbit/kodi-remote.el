@@ -1108,6 +1108,87 @@ Key bindings:
 	       ))
            (pop-to-buffer-same-window buffer))))))
 
+(defun kodi-remote-movies-toggle-visibility ()
+  "Toggle visability of watched movies."
+  (interactive)
+  (setq kodi-unseen-visible(not kodi-unseen-visible))
+  (kodi-remote-draw-movies))
+
+(defun spiderbit-get-movie-id (movie)
+  "Return the id of a Movie."
+  (cdr (assoc 'movieid movie)))
+
+(defun sbit-movie-action (obj)
+  "Helper method for movie start buttons.
+Argument OBJ the button obj."
+  (kodi-remote-play-database-movie-id
+   (button-get obj 'id)))
+
+(defun kodi-remote-play-database-movie-id (id)
+  "Play move in database with given ID."
+  (let* ((params
+	  `(("params" . (("item" . (("movieid" . ,id))))))))
+    (kodi-remote-post "Player.Open" params)))
+
+(defun kodi-remote-get-movies (&optional filter-watched)
+  "Poll unwatches movies.
+Optional argument FILTER-WATCHED filters watched episodes."
+  (let* ((filter '("filter" . (("field" . "playcount")
+			       ("operator" . "lessthan")
+			       ("value" . "1" ))))
+	 (pre-params `(("properties" .
+                        ["title" "file"]))
+                     )
+	 (params (list (append '("params") pre-params
+			       (if filter-watched `(,filter))))))
+    (kodi-remote-get "VideoLibrary.GetMovies" params)))
+
+
+(defun kodi-remote-draw-movies (&optional _arg _noconfirm)
+  "Draw a list of movies.
+Optional argument _ARG revert excepts this param.
+Optional argument _NOCONFIRM revert excepts this param."
+  (interactive)
+  (kodi-remote-video-scan)
+  (kodi-remote-get-movies (not kodi-unseen-visible))
+  (kodi-remote-sit-for-done)
+  (let* ((entries '()))
+    (dolist (movie (append (let-alist kodi-properties .movies) nil))
+      (push (list (spiderbit-get-movie-id movie)
+		  (vector `(,(spiderbit-get-name movie)
+			    action sbit-movie-action
+			    id ,(spiderbit-get-movie-id movie))))
+	    entries))
+    (setq tabulated-list-entries entries)
+    (tabulated-list-init-header)
+    (tabulated-list-print)))
+
+(defvar kodi-remote-movies-mode-map
+  (let ((map (make-sparse-keymap))
+	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "k") 'kodi-remote-keyboard)
+    (define-key map (kbd "l") 'kodi-remote-movies-toggle-visibility)
+    ;; (define-key map (kbd "d") 'kodi-remote-delete)
+    ;; (define-key map (kbd "a") 'kodi-remote-playlist-add-episode)
+    map)
+  "Keymap for `kodi-remote-movies-mode'.")
+
+
+(define-derived-mode kodi-remote-movies-mode tabulated-list-mode "kodi-remote-movies"
+  "Major Mode for kodi movies.
+Key bindings:
+\\{kodi-remote-movies-mode-map}"
+  (setq tabulated-list-format
+        `[("Movies" 30 t)])
+  (setq-local revert-buffer-function #'kodi-remote-draw-movies))
+
+;;;###autoload
+(defun kodi-remote-movies ()
+  "Open a `kodi-remote-movies-mode' buffer."
+  (interactive)
+  (kodi-remote-context kodi-remote-movies-mode))
+
+
 (provide 'kodi-remote)
 ;;; kodi-remote.el ends here
 
