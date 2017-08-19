@@ -182,10 +182,10 @@ Argument DIRECTION which direction and how big of step to seek."
 			 ("value" . ,direction))))))
     (kodi-remote-post "Player.Seek" params)))
 
-(defun kodi-remote-play-database-id (id)
+(defun kodi-remote-play-database-id (field-name id)
   "Play series in database with given ID."
   (let* ((params
-	  `(("params" . (("item" . (("episodeid" . ,id))))))))
+	  `(("params" . (("item" . ((,field-name . ,id))))))))
     (kodi-remote-post "Player.Open" params)))
 
 (defun kodi-remote-play-playlist-item (position)
@@ -193,12 +193,6 @@ Argument DIRECTION which direction and how big of step to seek."
   (let* ((params
 	  `(("params" . (("item" . (("playlistid" . 1)
 				    ("position" . ,position))))))))
-    (kodi-remote-post "Player.Open" params)))
-
-(defun kodi-remote-play-song (id)
-  "Play song with id ID."
-  (let* ((params
-	  `(("params" . (("item" . (("songid" . ,id))))))))
     (kodi-remote-post "Player.Open" params)))
 
 ;;;###autoload
@@ -744,17 +738,11 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
   (let* ((params nil))
     (kodi-remote-post "VideoLibrary.Scan" params)))
 
-(defun sbit-action (obj)
+(defun sbit-action (field-name obj)
   "Helper method for series start buttons.
 Argument OBJ the button obj."
   (kodi-remote-play-database-id
-   (button-get obj 'id)))
-
-(defun sbit-action-song (obj)
-  "Helper method for songs start buttons.
-Argument OBJ the button obj."
-  (kodi-remote-play-song
-   (button-get obj 'id)))
+   field-name (button-get obj 'id)))
 
 (defun sbit-action-playlist (obj)
   "Helper method for playlist start buttons.
@@ -765,14 +753,6 @@ Argument OBJ the button obj."
 (defun spiderbit-get-name (episode)
   "Return the name of a EPISODE."
   (decode-coding-string (cdr (assoc 'label episode)) 'utf-8) )
-
-(defun spiderbit-get-id (episode)
-  "Return the id of a EPISODE."
-  (cdr (assoc 'episodeid episode)))
-
-(defun spiderbit-get-show-id (show)
-  "Return the id of a SHOW."
-  (cdr (assoc 'tvshowid show)))
 
 (defun kodi-show-get-number-of-unwatched (show)
   "Return number of unwatched episodes from a SHOW."
@@ -813,7 +793,6 @@ Argument ITEM the media data form kodi"
 		      action kodi-remote-draw-episodes
 		      id ,tvshowid))))))
 
-
 (defun kodi-generate-entry (action id item)
   "Generate tabulated-list entry for kodi media buffers.
 Argument ACTION button action.
@@ -836,19 +815,40 @@ Argument ITEM the media data form kodi"
 )))
 
 ;;;###autoload
+(defun kodi-remote-draw-movies (&optional _arg _noconfirm)
+  "Draw a list of movies.
+Optional argument _ARG revert excepts this param.
+Optional argument _NOCONFIRM revert excepts this param."
+  (interactive)
+  (kodi-remote-video-scan)
+  (kodi-remote-get-movies (not kodi-unseen-visible))
+  (kodi-remote-sit-for-done)
+  (setq tabulated-list-entries
+  	(remove nil (mapcar (apply-partially
+			     'kodi-generate-entry
+			     (apply-partially 'sbit-action "movieid")
+			     'movieid)
+			    (let-alist kodi-properties .movies))))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
+
+;;;###autoload
 (defun kodi-remote-draw-episodes (&optional _arg _noconfirm)
   "Draw a list of episodes of all or a specific show.
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
-  (kodi-remote-get-series-episodes kodi-selected-show
-				   (not kodi-unseen-visible))
+  (kodi-remote-get-series-episodes
+   kodi-selected-show (not kodi-unseen-visible))
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
-					 'sbit-action 'episodeid)
-  			(let-alist kodi-properties .episodes))))
+  	(remove nil (mapcar
+		     (apply-partially
+		      'kodi-generate-entry
+		      (apply-partially 'sbit-action "episodeid")
+		      'episodeid)
+		     (let-alist kodi-properties .episodes))))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -861,9 +861,12 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-songs kodi-selected-artist)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
-					 'sbit-action-song 'songid)
-  			(let-alist kodi-properties .songs))))
+  	(remove nil (mapcar
+		     (apply-partially
+		      'kodi-generate-entry
+		      (apply-partially 'sbit-action "songid")
+		      'songid)
+		     (let-alist kodi-properties .songs))))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -879,7 +882,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar 'kodi-generate-series-entry
-  			(let-alist kodi-properties .tvshows))))
+			    (let-alist kodi-properties .tvshows))))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -892,12 +895,12 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-artist-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
-					 'kodi-remote-songs-wrapper 'artistid)
-  			(let-alist kodi-properties .artists))))
+  	(remove nil (mapcar (apply-partially
+			     'kodi-generate-entry
+			     'kodi-remote-songs-wrapper 'artistid)
+			    (let-alist kodi-properties .artists))))
   (tabulated-list-init-header)
   (tabulated-list-print))
-
 
 ;;;###autoload
 (defun kodi-remote-playlist-draw (&optional _arg _noconfirm)
@@ -1086,18 +1089,6 @@ Key bindings:
   "Return the id of a Movie."
   (cdr (assoc 'movieid movie)))
 
-(defun sbit-movie-action (obj)
-  "Helper method for movie start buttons.
-Argument OBJ the button obj."
-  (kodi-remote-play-database-movie-id
-   (button-get obj 'id)))
-
-(defun kodi-remote-play-database-movie-id (id)
-  "Play move in database with given ID."
-  (let* ((params
-	  `(("params" . (("item" . (("movieid" . ,id))))))))
-    (kodi-remote-post "Player.Open" params)))
-
 (defun kodi-remote-get-movies (&optional filter-watched)
   "Poll unwatches movies.
 Optional argument FILTER-WATCHED filters watched episodes."
@@ -1109,22 +1100,6 @@ Optional argument FILTER-WATCHED filters watched episodes."
 	 (params (list (append '("params") pre-params
 			       (if filter-watched `(,filter))))))
     (kodi-remote-get "VideoLibrary.GetMovies" params)))
-
-
-(defun kodi-remote-draw-movies (&optional _arg _noconfirm)
-  "Draw a list of movies.
-Optional argument _ARG revert excepts this param.
-Optional argument _NOCONFIRM revert excepts this param."
-  (interactive)
-  (kodi-remote-video-scan)
-  (kodi-remote-get-movies (not kodi-unseen-visible))
-  (kodi-remote-sit-for-done)
-  (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
-					     'sbit-movie-action 'movieid)
-			    (let-alist kodi-properties .movies))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
 
 (defvar kodi-remote-movies-mode-map
   (let ((map (make-sparse-keymap))
