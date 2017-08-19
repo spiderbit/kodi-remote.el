@@ -845,16 +845,12 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-series-episodes kodi-selected-show
 				   (not kodi-unseen-visible))
   (kodi-remote-sit-for-done)
-  (let* ((entries '()))
-    (dolist (episode (append (let-alist kodi-properties .episodes) nil))
-      (push (list (spiderbit-get-id episode)
-		  (vector `(,(spiderbit-get-name episode)
-			    action sbit-action
-			    id ,(spiderbit-get-id episode))))
-	    entries))
-    (setq tabulated-list-entries entries)
-    (tabulated-list-init-header)
-    (tabulated-list-print)))
+  (setq tabulated-list-entries
+  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
+					 'sbit-action 'episodeid)
+  			(let-alist kodi-properties .episodes))))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
 
 ;;;###autoload
 (defun kodi-remote-draw-songs (&optional _arg _noconfirm)
