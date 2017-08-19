@@ -929,24 +929,6 @@ Optional argument _NOCONFIRM revert excepts this param."
   (tabulated-list-init-header)
   (tabulated-list-print))
 
-
-;;;###autoload
-;; (defun kodi-remote-playlists-draw (&optional _arg _noconfirm)
-;;   "Draw the list of playlists.
-;; Optional argument _ARG revert excepts this param.
-;; Optional argument _NOCONFIRM revert excepts this param."
-;;   (interactive)
-;;   (kodi-remote-playlists-get)
-;;   (kodi-remote-sit-for-done)
-;;   (setq tabulated-list-entries '())
-;;   (dolist (item (append (let-alist kodi-properties .items) nil))
-;;     (push (list (spiderbit-get-id item)
-;; 		(vector `(,(spiderbit-get-name item)
-;; 			  id ,(spiderbit-get-show-id item))))
-;; 	  tabulated-list-entries))
-;;   (tabulated-list-init-header)
-;;   (tabulated-list-print))
-
 (defvar kodi-remote-playlist-mode-map
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
@@ -1050,14 +1032,6 @@ Key bindings:
         `[("Entry" 30 t)])
   (setq-local revert-buffer-function #'kodi-remote-playlist-draw))
 
-;; (define-derived-mode kodi-remote-playlists-mode tabulated-list-mode "kodi-remote-playlists"
-;;   "Major Mode for kodi playlists.
-;; Key bindings:
-;; \\{kodi-remote-playlists-mode-map}"
-;;   (setq tabulated-list-format
-;;         `[("Playlists" 30 t)])
-;;   (setq-local revert-buffer-function #'kodi-remote-playlists-draw))
-
 ;;;###autoload
 (defun kodi-remote-series-episodes ()
   "Open a `kodi-remote-series-episodes-mode' buffer."
@@ -1087,12 +1061,6 @@ Key bindings:
   "Open a `kodi-remote-playlist-mode' buffer."
   (interactive)
   (kodi-remote-context kodi-remote-playlist-mode))
-
-;;;###autoload
-;; (defun kodi-remote-playlists ()
-;;   "Open a `kodi-remote-playlists-mode' buffer."
-;;   (interactive)
-;;   (kodi-remote-context kodi-remote-playlists-mode))
 
 (defmacro kodi-remote-context (mode)
   "Switch to a context buffer of major mode MODE."
@@ -1194,6 +1162,38 @@ Key bindings:
   "Open a `kodi-remote-movies-mode' buffer."
   (interactive)
   (kodi-remote-context kodi-remote-movies-mode))
+
+;; (define-derived-mode kodi-remote-playlists-mode tabulated-list-mode "kodi-remote-playlists"
+;;   "Major Mode for kodi playlists.
+;; Key bindings:
+;; \\{kodi-remote-playlists-mode-map}"
+;;   (setq tabulated-list-format
+;;         `[("Playlists" 30 t)])
+;;   (setq-local revert-buffer-function #'kodi-remote-playlists-draw))
+
+;;;###autoload
+;; (defun kodi-remote-playlists ()
+;;   "Open a `kodi-remote-playlists-mode' buffer."
+;;   (interactive)
+;;   (kodi-remote-context kodi-remote-playlists-mode))
+
+;;;###autoload
+;; (defun kodi-remote-playlists-draw (&optional _arg _noconfirm)
+;;   "Draw the list of playlists.
+;; Optional argument _ARG revert excepts this param.
+;; Optional argument _NOCONFIRM revert excepts this param."
+;;   (interactive)
+;;   (kodi-remote-playlists-get)
+;;   (kodi-remote-sit-for-done)
+;;   (setq tabulated-list-entries '())
+;;   (dolist (item (append (let-alist kodi-properties .items) nil))
+;;     (push (list (spiderbit-get-id item)
+;; 		(vector `(,(spiderbit-get-name item)
+;; 			  id ,(spiderbit-get-show-id item))))
+;; 	  tabulated-list-entries))
+;;   (tabulated-list-init-header)
+;;   (tabulated-list-print))
+
 
 
 (provide 'kodi-remote)
