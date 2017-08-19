@@ -777,36 +777,28 @@ Argument BUTTON contains the artist-id"
     (setq kodi-selected-artist (button-get button 'id)))
   (kodi-remote-songs))
 
-(defun kodi-generate-series-entry (item)
-  "Generate tabulated-list entry for kodi media buffers.
-Argument ITEM the media data form kodi"
-  (let* ((number-of-episodes (kodi-show-get-number-of-unwatched item))
-	 ;; (episodeid (assoc-default 'episodeid item))
-	 (label (assoc-default 'label item))
-	 (tvshowid (assoc-default 'tvshowid item)))
-    (when (or (> number-of-episodes 0) kodi-unseen-visible)
-      (list tvshowid
-	    (vector `(,label
-		      action kodi-remote-series-episodes-wrapper
-		      id ,tvshowid)
-		    `(,(number-to-string number-of-episodes)
-		      action kodi-remote-draw-episodes
-		      id ,tvshowid))))))
-
-(defun kodi-generate-entry (action id item)
+(defun kodi-generate-entry (action id parent item)
   "Generate tabulated-list entry for kodi media buffers.
 Argument ACTION button action.
 Argument ID button/entry id.
-Argument ITEM the media data form kodi"
-  (let* ((number-of-nodes 5)
+Argument PARENT sets entry as category/tag with child entries.
+Argument ITEM the media data from kodi"
+  (let* ((number-of-nodes
+	  (if parent
+	      (kodi-show-get-number-of-unwatched item) 5)) ; not abstracted yet
 	 (subitemid (assoc-default id item))
 	 (label (decode-coding-string (assoc-default 'label item) 'utf-8))
 	 (itemid (assoc-default id item)))
     (when (or (> number-of-nodes 0) kodi-unseen-visible)
-      (list subitemid
-	    (vector `(,label
-		      action ,action
-		      id , subitemid))))))
+      (let* ((button1 `(,label
+			action ,action
+			id ,subitemid))
+	     (button2 `(,(number-to-string number-of-nodes)
+			action ,action
+			id ,subitemid)))
+	(list subitemid
+	      (if parent
+		  (vector button1 button2)(vector button1)))))))
 
 (defun kodi-remote-draw ()
   "Draw the buffer with new contents via `kodi-refresh-function'."
@@ -827,7 +819,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   	(remove nil (mapcar (apply-partially
 			     'kodi-generate-entry
 			     (apply-partially 'sbit-action "movieid")
-			     'movieid)
+			     'movieid nil)
 			    (let-alist kodi-properties .movies))))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -847,7 +839,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 		     (apply-partially
 		      'kodi-generate-entry
 		      (apply-partially 'sbit-action "episodeid")
-		      'episodeid)
+		      'episodeid nil)
 		     (let-alist kodi-properties .episodes))))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -865,7 +857,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 		     (apply-partially
 		      'kodi-generate-entry
 		      (apply-partially 'sbit-action "songid")
-		      'songid)
+		      'songid nil)
 		     (let-alist kodi-properties .songs))))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -881,8 +873,12 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-show-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil (mapcar 'kodi-generate-series-entry
-			    (let-alist kodi-properties .tvshows))))
+  	(remove nil (mapcar
+		     (apply-partially
+		      'kodi-generate-entry
+		      'kodi-remote-series-episodes-wrapper
+		      'tvshowid t)
+		     (let-alist kodi-properties .tvshows))))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -897,7 +893,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (setq tabulated-list-entries
   	(remove nil (mapcar (apply-partially
 			     'kodi-generate-entry
-			     'kodi-remote-songs-wrapper 'artistid)
+			     'kodi-remote-songs-wrapper 'artistid nil)
 			    (let-alist kodi-properties .artists))))
   (tabulated-list-init-header)
   (tabulated-list-print))
