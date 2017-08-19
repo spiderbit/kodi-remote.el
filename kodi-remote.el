@@ -865,8 +865,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-songs kodi-selected-artist)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil
-  		(mapcar (apply-partially 'kodi-generate-entry
+  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
 					 'sbit-action-song 'songid)
   			(let-alist kodi-properties .songs))))
   (tabulated-list-init-header)
@@ -883,8 +882,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-show-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil
-  		(mapcar 'kodi-generate-series-entry
+  	(remove nil (mapcar 'kodi-generate-series-entry
   			(let-alist kodi-properties .tvshows))))
   (tabulated-list-init-header)
   (tabulated-list-print))
@@ -898,8 +896,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-artist-list)
   (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
-  	(remove nil
-  		(mapcar (apply-partially 'kodi-generate-entry
+  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
 					 'kodi-remote-songs-wrapper 'artistid)
   			(let-alist kodi-properties .artists))))
   (tabulated-list-init-header)
@@ -1112,8 +1109,7 @@ Optional argument FILTER-WATCHED filters watched episodes."
 			       ("operator" . "lessthan")
 			       ("value" . "1" ))))
 	 (pre-params `(("properties" .
-                        ["title" "file"]))
-                     )
+                        ["title" "file"])))
 	 (params (list (append '("params") pre-params
 			       (if filter-watched `(,filter))))))
     (kodi-remote-get "VideoLibrary.GetMovies" params)))
@@ -1127,16 +1123,12 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-video-scan)
   (kodi-remote-get-movies (not kodi-unseen-visible))
   (kodi-remote-sit-for-done)
-  (let* ((entries '()))
-    (dolist (movie (append (let-alist kodi-properties .movies) nil))
-      (push (list (spiderbit-get-movie-id movie)
-		  (vector `(,(spiderbit-get-name movie)
-			    action sbit-movie-action
-			    id ,(spiderbit-get-movie-id movie))))
-	    entries))
-    (setq tabulated-list-entries entries)
-    (tabulated-list-init-header)
-    (tabulated-list-print)))
+  (setq tabulated-list-entries
+  	(remove nil (mapcar (apply-partially 'kodi-generate-entry
+					     'sbit-movie-action 'movieid)
+			    (let-alist kodi-properties .movies))))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
 
 (defvar kodi-remote-movies-mode-map
   (let ((map (make-sparse-keymap))
