@@ -112,8 +112,8 @@ Argument PARAMS kodi json api argument."
      :type "POST"
      :data (json-encode request-data)
      :headers '(("Content-Type" . "application/json"))
-     :parser 'json-read)
-    ))
+     :parser 'json-read))
+  (kodi-remote-sit-for-done))
 
 (defun kodi-remote-get (method params)
   "Function to send get requests to the kodi instance.
@@ -145,7 +145,8 @@ Argument PARAMS kodi json api argument."
      :error (cl-function (lambda (&key error-thrown &allow-other-keys&rest _)
 			   (message "Got error: %S" error-thrown)))
      ;; :complete (lambda (&rest _) (message "Finished!"))
-     :parser 'buffer-string)))
+     :parser 'buffer-string))
+  (kodi-remote-sit-for-done))
 
 ;;;###autoload
 (defun kodi-remote-start-music-party ()
@@ -168,7 +169,6 @@ Argument PARAMS kodi json api argument."
   "Stopps active player."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (sit-for 0.01)
   (let* ((params
 	  `(("params" . (("playerid" . ,kodi-active-player))))))
     (kodi-remote-post "Player.Stop" params)))
@@ -212,8 +212,7 @@ Argument DIRECTION which direction and how big of step to seek."
   (let* ((vol (+ kodi-volume offset)))
     (let* ((params
 	    `(("params" . (("volume" . ,vol))))))
-      (kodi-remote-post "Application.SetVolume" params)))
-    (kodi-remote-sit-for-done))
+      (kodi-remote-post "Application.SetVolume" params))))
 
 (defun kodi-remote-input (input)
   "Function to send post INPUT json requests."
@@ -226,7 +225,8 @@ Argument DIRECTION which direction and how big of step to seek."
 			  ("method" . ,input)
 			  ))
      :headers '(("Content-Type" . "application/json"))
-     :parser 'json-read)))
+     :parser 'json-read))
+  (wait-for-done))
 
 (defun kodi-remote-input-execute-action (action)
   "Function to send post ACTION json requests."
@@ -239,7 +239,6 @@ Argument DIRECTION which direction and how big of step to seek."
 Depending on current window move horizontal in menu (INPUT)
  or SEEK big forward/backward."
   (kodi-remote-get-active-window)
-  (sit-for 0.01)
   (if (string-equal kodi-active-window "Fullscreen video")
       (kodi-remote-player-seek seek)
     (kodi-remote-input input)))
@@ -316,7 +315,6 @@ Depending on current window move horizontal in menu (INPUT)
   (let* ((params
 	  '(("params" . (("properties" . ("volume")))))))
     (kodi-remote-get "Application.GetProperties" params))
-  (kodi-remote-sit-for-done)
   (setq kodi-volume (let-alist kodi-properties .volume)))
 
 (defun kodi-remote-get-songs (&optional id)
@@ -463,21 +461,18 @@ Argument ID kodi series database identifier."
   (let* ((params
 	  `(("params" . (("episodeid" . ,id)
 			 ("properties" . ("playcount")))))))
-    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
-  (sit-for 0.02))
+    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params)))
 
 (defun kodi-remote-get-active-window ()
   "Update currently active window."
   (let* ((params
 	  '(("params" . (("properties" . ("currentwindow")))))))
     (kodi-remote-get "Gui.GetProperties" params))
-  (sit-for 0.1)
   (setq kodi-active-window (let-alist kodi-properties .currentwindow.label)))
 
 (defun kodi-remote-get-active-player-id ()
   "Update currently active player."
   (kodi-remote-get "Player.GetActivePlayers" nil)
-  (kodi-remote-sit-for-done)
   (setq kodi-active-player ( let-alist (elt kodi-properties 0) .playerid)))
 
 ;;;###autoload
@@ -593,12 +588,10 @@ Optional argument LABEL a custom label for the file."
   	 (params `(("params" . (("playlistid" . 1)
 				("item" . (("file" . ,stream-url))))))))
     (kodi-remote-post "Playlist.Add" params))
-  (kodi-remote-sit-for-done)
   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
   ;; 			 ":8028/"))
   ;; 	   (params `(("params" . (("directory" . ,url2))))))
   ;;   (kodi-remote-post "VideoLibrary.Scan" params))
-  ;; (kodi-remote-sit-for-done)
   )
 
 
@@ -621,12 +614,10 @@ Optional argument LABEL cutom name of the entry."
 	 (params `(("params" . (("playlistid" . 1)
 				("item" . (("file" . ,stream-url))))))))
     (kodi-remote-post "Playlist.Add" params))
-  (kodi-remote-sit-for-done)
   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
   ;; 			 ":8028/youtube-titel-321/"))
   ;; 	   (params `(("params" . (("directory" . ,url2))))))
   ;;   (kodi-remote-post "VideoLibrary.Scan" params))
-  ;; (kodi-remote-sit-for-done)
 )
 
 
@@ -702,7 +693,6 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
 		   (("episodeid" . ,(tabulated-list-get-id))
 		    ("properties" . ("file")))))))
 	  (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
-	(kodi-remote-sit-for-done)
 	(let* ((default-directory
 		 (concat "/" kodi-access-method
 			 ":" kodi-access-host ":/"))
@@ -761,7 +751,10 @@ Argument OBJ the button obj."
 
 (defun kodi-remote-sit-for-done ()
   "Sits till the last json request is done."
-  (while kodi-request-running (sit-for 0.05)))
+  (let* ((waiting-time 0))
+    (while (and kodi-request-running (< waiting-time 0.3))
+      (sit-for 0.05)
+      (setq waiting-time (+ 0.05 waiting-time)))))
 
 (defun kodi-remote-series-episodes-wrapper (button)
   "Set the selected show and then displays episodes.
@@ -814,7 +807,6 @@ Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
   (kodi-remote-get-movies (not kodi-unseen-visible))
-  (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar (apply-partially
 			     'kodi-generate-entry
@@ -833,7 +825,6 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show (not kodi-unseen-visible))
-  (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar
 		     (apply-partially
@@ -851,7 +842,6 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-get-songs kodi-selected-artist)
-  (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar
 		     (apply-partially
@@ -869,9 +859,7 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
-  (kodi-remote-sit-for-done)
   (kodi-remote-get-show-list)
-  (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar
 		     (apply-partially
@@ -889,7 +877,6 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-get-artist-list)
-  (kodi-remote-sit-for-done)
   (setq tabulated-list-entries
   	(remove nil (mapcar (apply-partially
 			     'kodi-generate-entry
@@ -905,7 +892,6 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-playlist-get)
-  (kodi-remote-sit-for-done)
   (let* ((items (cdr (assoc 'items kodi-properties)))
   	 (id 0))
     (setq tabulated-list-entries
@@ -1143,7 +1129,6 @@ Key bindings:
 ;; Optional argument _NOCONFIRM revert excepts this param."
 ;;   (interactive)
 ;;   (kodi-remote-playlists-get)
-;;   (kodi-remote-sit-for-done)
 ;;   (setq tabulated-list-entries '())
 ;;   (dolist (item (append (let-alist kodi-properties .items) nil))
 ;;     (push (list (spiderbit-get-id item)
