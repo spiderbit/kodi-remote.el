@@ -770,14 +770,14 @@ Argument BUTTON contains the artist-id"
     (setq kodi-selected-artist (button-get button 'id)))
   (kodi-remote-songs))
 
-(defun kodi-generate-entry (action id parent item)
+(defun kodi-generate-entry (action id subitems item)
   "Generate tabulated-list entry for kodi media buffers.
 Argument ACTION button action.
 Argument ID button/entry id.
-Argument PARENT sets entry as category/tag with child entries.
+Argument SUBITEMS sets entry as category/tag with child entries.
 Argument ITEM the media data from kodi"
   (let* ((number-of-nodes
-	  (if parent
+	  (if subitems
 	      (kodi-show-get-number-of-unwatched item) 5)) ; not abstracted yet
 	 (subitemid (assoc-default id item))
 	 (label (decode-coding-string (assoc-default 'label item) 'utf-8))
@@ -790,7 +790,7 @@ Argument ITEM the media data from kodi"
 			action ,action
 			id ,subitemid)))
 	(list subitemid
-	      (if parent
+	      (if subitems
 		  (vector button1 button2)(vector button1)))))))
 
 (defun kodi-remote-draw ()
@@ -798,6 +798,24 @@ Argument ITEM the media data from kodi"
   (with-silent-modifications
     (funcall kodi-remote-refresh-function ;; transmission-torrent-id
 )))
+
+(defun kodi-draw-tab-list (action parent id data-name subitems)
+  "Creates and draws a media overview buffer.
+Argument ACTION button action.
+Argument PARENT sets entry as category/tag with child entries.
+Argument ID button/entry id.
+Argument DATA-NAME name of the data we want to show.
+Argument ITEM the media data from kodi"
+  (setq tabulated-list-entries
+  	(remove nil (mapcar
+		     (apply-partially
+		      'kodi-generate-entry
+		      (if parent action (apply-partially
+					 'sbit-action action))
+		      id subitems)
+		     (assoc-default data-name kodi-properties))))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
 
 ;;;###autoload
 (defun kodi-remote-draw-movies (&optional _arg _noconfirm)
@@ -807,14 +825,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
   (kodi-remote-get-movies (not kodi-unseen-visible))
-  (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially
-			     'kodi-generate-entry
-			     (apply-partially 'sbit-action "movieid")
-			     'movieid nil)
-			    (let-alist kodi-properties .movies))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+  (kodi-draw-tab-list 'movieid nil 'movieid 'movies nil))
 
 ;;;###autoload
 (defun kodi-remote-draw-episodes (&optional _arg _noconfirm)
@@ -825,15 +836,7 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show (not kodi-unseen-visible))
-  (setq tabulated-list-entries
-  	(remove nil (mapcar
-		     (apply-partially
-		      'kodi-generate-entry
-		      (apply-partially 'sbit-action "episodeid")
-		      'episodeid nil)
-		     (let-alist kodi-properties .episodes))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+  (kodi-draw-tab-list 'episodeid nil 'episodeid 'episodes nil))
 
 ;;;###autoload
 (defun kodi-remote-draw-songs (&optional _arg _noconfirm)
@@ -842,15 +845,7 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-get-songs kodi-selected-artist)
-  (setq tabulated-list-entries
-  	(remove nil (mapcar
-		     (apply-partially
-		      'kodi-generate-entry
-		      (apply-partially 'sbit-action "songid")
-		      'songid nil)
-		     (let-alist kodi-properties .songs))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+  (kodi-draw-tab-list 'songid nil 'songid 'songs nil))
 
 ;;;###autoload
 (defun kodi-remote-draw-shows (&optional _arg _noconfirm)
@@ -860,15 +855,8 @@ Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-video-scan)
   (kodi-remote-get-show-list)
-  (setq tabulated-list-entries
-  	(remove nil (mapcar
-		     (apply-partially
-		      'kodi-generate-entry
-		      'kodi-remote-series-episodes-wrapper
-		      'tvshowid t)
-		     (let-alist kodi-properties .tvshows))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+  (kodi-draw-tab-list 'kodi-remote-series-episodes-wrapper t
+		      'tvshowid 'tvshows t))
 
 ;;;###autoload
 (defun kodi-remote-draw-music (&optional _arg _noconfirm)
@@ -877,13 +865,8 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-get-artist-list)
-  (setq tabulated-list-entries
-  	(remove nil (mapcar (apply-partially
-			     'kodi-generate-entry
-			     'kodi-remote-songs-wrapper 'artistid nil)
-			    (let-alist kodi-properties .artists))))
-  (tabulated-list-init-header)
-  (tabulated-list-print))
+  (kodi-draw-tab-list 'kodi-remote-songs-wrapper t
+		      'artistid 'artists nil))
 
 ;;;###autoload
 (defun kodi-remote-playlist-draw (&optional _arg _noconfirm)
