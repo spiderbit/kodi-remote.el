@@ -752,9 +752,9 @@ Argument OBJ the button obj."
 (defun kodi-remote-sit-for-done ()
   "Sits till the last json request is done."
   (let* ((waiting-time 0))
-    (while (and kodi-request-running (< waiting-time 0.3))
-      (sit-for 0.05)
-      (setq waiting-time (+ 0.05 waiting-time)))))
+    (while (and kodi-request-running (< waiting-time 10.0))
+      (sit-for 0.1)
+      (setq waiting-time (+ 0.1 waiting-time)))))
 
 (defun kodi-remote-series-episodes-wrapper (button)
   "Set the selected show and then displays episodes.
