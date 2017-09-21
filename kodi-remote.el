@@ -537,7 +537,7 @@ supports.  Argument VIDEO-URL A Url from a youtube video."
   (interactive "surl: ")
   (let* ((response
 	 (shell-command-to-string
-	  (concat "youtube-dl -f best -g -e " video-url))))
+	  (concat "youtube-dl --no-warnings -f best -g -e " video-url))))
     (let* ((url (nth 1 (split-string response "\n")))
 	   (title (nth 0 (split-string response "\n"))))
       (kodi-remote-play-url url))))
