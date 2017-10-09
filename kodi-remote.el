@@ -681,34 +681,38 @@ Key bindings:
   (setq kodi-unseen-visible(not kodi-unseen-visible))
   (kodi-remote-draw-shows))
 
-(defun kodi-remote-delete ()
-  "Delete episode over tramp.
+(defun kodi-remote-delete-multiple (ids)
+  "Deletes all entries with id in ids list"
+  (mapcar 'kodi-remote-delete-entry ids))
+
+(defun kodi-remote-delete-entry (id)
+  "Deletes episode over tramp.
 For it to work ‘kodi-dangerous-options’ must be set to t
 and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
-  (interactive)
-  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
-      (progn
-	(let* ((params
-		`(("params" .
-		   (("episodeid" . ,(tabulated-list-get-id))
-		    ("properties" . ("file")))))))
-	  (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
-	(let* ((default-directory
-		 (concat "/" kodi-access-method
-			 ":" kodi-access-host ":/"))
-	       (file-name
-		(substring
-		 (decode-coding-string
-		  (let-alist
-		      kodi-properties .episodedetails.file)
-		  'utf-8)
-		 1)))
-	  (if (file-writable-p file-name )
-	      (delete-file file-name)))
-	(let* ((params
-		`(("params" . (("episodeid" .
-				,(tabulated-list-get-id)))))))
-	  (kodi-remote-post "VideoLibrary.RemoveEpisode" params)))))
+  (let* ((default-directory "~"))
+    (if (and kodi-dangerous-options (boundp 'kodi-access-host))
+	(progn
+	  (let* ((params
+		  `(("params" .
+		     (("episodeid" . ,id)
+		      ("properties" . ("file")))))))
+	    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
+	  (let* ((default-directory
+		   (concat "/" kodi-access-method
+			   ":" kodi-access-host ":/"))
+		 (file-name
+		  (substring
+		   (decode-coding-string
+		    (let-alist
+			kodi-properties .episodedetails.file)
+		    'utf-8)
+		   1)))
+	    (if (file-writable-p file-name )
+		(delete-file file-name)))
+	  (let* ((params
+		  `(("params" . (("episodeid" .
+				  ,id ))))))
+	    (kodi-remote-post "VideoLibrary.RemoveEpisode" params))))))
 
 (defun kodi-remote-series-clean ()
   "Cleans video library."
@@ -1090,6 +1094,44 @@ Key bindings:
   "Open a `kodi-remote-movies-mode' buffer."
   (interactive)
   (kodi-remote-context kodi-remote-movies-mode))
+
+
+(defun kodi-files-do (action)
+  "Apply ACTION to files in `kodi-media-mode' buffers."
+  ;; (cl-assert (memq action kodi-file-symbols))
+  (let* ((id nil)
+         (prop 'tabulated-list-id)
+         (region (use-region-p))
+         (beg (and region (region-beginning)))
+         (end (and region (region-end)))
+         (indices
+          (if (null region)
+	      (list (tabulated-list-get-id))
+	    (mapcar (lambda (id) id)
+		    (kodi-text-property-all beg end prop)))))
+    (if (and indices)
+        (let ((arguments (list :ids action indices)))
+	  (if (equal :delete action)
+	      (kodi-remote-delete-multiple indices)))
+      (user-error "No entries selected or at point"))))
+
+(defun kodi-remote-delete ()
+  "Deletes entry(s) at point or in region."
+  (interactive)
+  (kodi-files-do :delete))
+
+(defun kodi-text-property-all (beg end prop)
+  "Return a list of non-nil values of a text property PROP between BEG and END.
+If none are found, return nil."
+  (let (res pos)
+    (save-excursion
+      (goto-char beg)
+      (while (> end (point))
+        (push (get-text-property (point) prop) res)
+        (setq pos (text-property-not-all (point) end prop (car-safe res)))
+        (goto-char (or pos end))))
+    (nreverse (delq nil res))))
+
 
 ;; (define-derived-mode kodi-remote-playlists-mode tabulated-list-mode "kodi-remote-playlists"
 ;;   "Major Mode for kodi playlists.
