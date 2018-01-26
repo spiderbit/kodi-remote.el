@@ -34,10 +34,11 @@ you need a running kodi instance of course!
 
 ## Using
 
-### open kodi media buffers to view movies/series/music, here you can navigate through your media files and play them.
+### open kodi media buffers, where you can navigate through your media files and play them.
     M-x kodi-remote-movies
     M-x kodi-remote-series
     M-x kodi-remote-music
+    M-x kodi-remote-playlists
 
 ### open kodi remote major mode, Control kodi like with a physical connected keyboard
     M-x kodi-remote-keyboard RET
