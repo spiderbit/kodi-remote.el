@@ -184,7 +184,7 @@ Argument DIRECTION which direction and how big of step to seek."
     (kodi-remote-post "Player.Seek" params)))
 
 (defun kodi-remote-play-database-id (field-name id)
-  "Play series in database with given ID."
+  "Play kodi item with the id type in FIELD-NAME and the given ID."
   (let* ((params
 	  `(("params" . (("item" . ((,field-name . ,id))))))))
     (kodi-remote-post "Player.Open" params)))
@@ -236,7 +236,7 @@ Argument DIRECTION which direction and how big of step to seek."
     (kodi-remote-post "Input.ExecuteAction" params)))
 
 (defun kodi-remote-input-direct (seek input)
-  "Move horrizontal or seek.
+  "Move horrizontal or SEEK.
 Depending on current window move horizontal in menu (INPUT)
  or SEEK big forward/backward."
   (kodi-remote-get-active-window)
@@ -768,11 +768,11 @@ Key bindings:
   (kodi-remote-draw-shows))
 
 (defun kodi-remote-delete-multiple (ids)
-  "Deletes all entries with id in ids list"
+  "Deletes all entries with id in IDS list."
   (mapcar 'kodi-remote-delete-entry ids))
 
 (defun kodi-remote-delete-entry (id)
-  "Deletes episode over tramp.
+  "Deletes episode with ID over tramp.
 For it to work ‘kodi-dangerous-options’ must be set to t
 and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
   (let* ((default-directory "~"))
@@ -819,7 +819,8 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
     (kodi-remote-post "VideoLibrary.Scan" params)))
 
 (defun sbit-action (field-name obj)
-  "Helper method for series start buttons.
+  "Helper method for start buttons.
+Argument FIELD-NAME the name of the id.
 Argument OBJ the button obj."
   (kodi-remote-play-database-id
    field-name (button-get obj 'id)))
@@ -953,7 +954,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 
 ;;;###autoload
 (defun kodi-remote-draw-shows (&optional _arg _noconfirm)
-  "Draw a list of shows.
+  "Draw a list of show entries.
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
@@ -1174,7 +1175,7 @@ Key bindings:
   (kodi-remote-draw-movies))
 
 (defun spiderbit-get-movie-id (movie)
-  "Return the id of a Movie."
+  "Return the id of a MOVIE."
   (cdr (assoc 'movieid movie)))
 
 (defun kodi-remote-get-movies (&optional filter-watched)
@@ -1240,7 +1241,7 @@ Key bindings:
   (kodi-files-do :delete))
 
 (defun kodi-text-property-all (beg end prop)
-  "Return a list of non-nil values of a text property PROP between BEG and END.
+  "Return a list of non-nil values between BEG and END of a text property PROP.
 If none are found, return nil."
   (let (res pos)
     (save-excursion
