@@ -333,7 +333,7 @@ Depending on current window move horizontal in menu (INPUT)
 Optional argument FILTER-WATCHED filters watched episodes."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (pre-params `(("properties" .
-                        ["title" "file"])))
+                        ["title" "file" "playcount"])))
 	 (params (list (append '("params") pre-params
 			       (unless (equal "all" kodi-watch-filter)
 				 `(,filter))))))
@@ -348,7 +348,9 @@ Optional argument ID limits to a specific artist."
 				   ("field" . "artist")
 				   ("value" . ,id))))
 	 (params `(("params" .
-		    (("filter" . (("and" .
+		    (("properties" .
+                        ["title" "file" "playcount"])
+		     ("filter" . (("and" .
 				   ,(if filter
 				       `(,(append (cdr pre-params))
 					,(cdr filter))
@@ -369,7 +371,7 @@ Optional argument FILTER-WATCHED filters watched episodes."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (pre-params (if (integerp show-id)
 			 `(("tvshowid" . ,show-id)
-			   ("properties" . ["title" "episode"]))
+			   ("properties" . ["title" "episode" "playcount"]))
 		       `(("properties" .
 			  ["title" "watchedepisodes" "episode"]))))
 	 (params (list (append '("params") pre-params
@@ -915,6 +917,7 @@ Argument ITEM the media data from kodi."
 	      (kodi-show-get-number-of-episodes item)
 	    5)) ; not abstracted yet
 	 (subitemid (assoc-default id item))
+	 (playcount (assoc-default 'playcount item))
 	 (label (decode-coding-string
 		 (assoc-default 'label item) 'utf-8))
 	 (label-sans-ext (file-name-sans-extension label))
@@ -922,7 +925,9 @@ Argument ITEM the media data from kodi."
     (when (or (> number-of-nodes 0) (equal kodi-watch-filter "all"))
       (let* ((button1 `(,(if hide-ext label-sans-ext label)
 			action ,action
-			id ,subitemid))
+			id ,subitemid
+			face ,(if (and playcount (> playcount 0))
+				  'font-lock-comment-face 'default)))
 	     (button2 `(,((lambda (x)
 			    (if (< 0 x) (number-to-string x) ""))
 			  number-of-nodes)
@@ -973,9 +978,10 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	`[(,(format "Movies - [%s]" kodi-watch-filter)
-	   30 t)])
+  (setq tabulated-list-format [("Movies" 30 t)])
+  (setq mode-name (format
+		   "kodi-remote-movies: %s"
+		   kodi-watch-filter))
   (kodi-remote-video-scan)
   (kodi-remote-get-movies)
   (kodi-draw-tab-list 'movieid nil 'movieid 'movies nil))
@@ -987,8 +993,12 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-	`[(,(format "Series - [%s]" kodi-watch-filter) 30 t)
+	`[("Series"  30 t)
 	  ("entries" 10 t)])
+  (setq mode-name
+	(format
+	 "kodi-remote-series: %s"
+	 kodi-watch-filter))
   (kodi-remote-video-scan)
   (kodi-remote-get-show-list)
   (kodi-draw-tab-list 'kodi-remote-series-episodes-wrapper t
@@ -1000,13 +1010,16 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	`[(,(format "Episode - [%s]" kodi-watch-filter)
-	   30 t)])
+  (setq tabulated-list-format [("Episode" 30 t)])
+  (setq mode-name
+	(format
+	 "kodi-remote-series-episodes: %s"
+	 kodi-watch-filter))
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show)
-  (kodi-draw-tab-list 'episodeid nil 'episodeid 'episodes nil))
+  (kodi-draw-tab-list
+   'episodeid nil 'episodeid 'episodes nil))
 
 ;;;###autoload
 (defun kodi-remote-draw-songs (&optional _arg _noconfirm)
@@ -1014,13 +1027,14 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	`[(,(format "Songs - [%s]"
-		    (pcase kodi-watch-filter
-		      ("all" "all")
-		      ("unseen" "not listenend")
-		      ("seen" "listened")))
-	   30 t)])
+  (setq tabulated-list-format [("Songs" 30 t)])
+  (setq mode-name
+	(format
+	 "kodi-remote-songs: %s"
+	 (pcase kodi-watch-filter
+	   ("all" "all")
+	   ("unseen" "not listenend")
+	   ("seen" "listened"))))
   (kodi-remote-get-songs kodi-selected-artist)
   (kodi-draw-tab-list 'songid nil 'songid 'songs nil))
 
@@ -1030,9 +1044,10 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	`[(,"Artists"
-	   30 t)])
+  (setq tabulated-list-format [("Artists" 30 t)])
+  (setq mode-name (format
+		   "kodi-remote-music: %s"
+		   kodi-watch-filter))
   (kodi-remote-get-artist-list)
   (kodi-draw-tab-list 'kodi-remote-songs-wrapper t
 		      'label 'artists nil))
