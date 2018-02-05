@@ -1288,8 +1288,7 @@ Key bindings:
          (indices
           (if (null region)
 	      (list (tabulated-list-get-id))
-	    (mapcar (lambda (id) id)
-		    (kodi-text-property-all beg end prop)))))
+	    (kodi-text-property-all beg end prop))))
     (if (and indices)
         (let ((arguments (list :ids action indices)))
 	  (if (equal :delete action)
