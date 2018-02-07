@@ -403,33 +403,16 @@ Optional argument FILTER-WATCHED filters watched episodes."
   (kodi-remote-get "VideoLibrary.GetTVShows" params)))
 
 ;;;###autoload
-(defun kodi-remote-playlist-add-episode ()
-  "Add episode to playlist."
+(defun kodi-remote-playlist-add-item ()
+  "Add item to playlist"
   (interactive)
-  (let* ((params `(("params" .
+  (let* ((ids '(("*kodi-remote-music*" . "songid")
+		("*kodi-remote-series-episodes*" . "episodeid")))
+	 (params `(("params" .
 		    (("playlistid" . 1)
 		     ("item" .
-		      (("episodeid" . ,(tabulated-list-get-id)))))))))
-    (kodi-remote-post "Playlist.Add" params)))
-
-;;;###autoload
-(defun kodi-remote-playlist-add-song ()
-  "Add episode to playlist."
-  (interactive)
-  (let* ((params `(("params" .
-		    (("playlistid" . 1)
-		     ("item" .
-		      (("songid" . ,(tabulated-list-get-id)))))))))
-    (kodi-remote-post "Playlist.Add" params)))
-
-;;;###autoload
-(defun kodi-remote-playlist-add-music ()
-  "Add episode to playlist."
-  (interactive)
-  (let* ((params `(("params" .
-		    (("playlistid" . 1)
-		     ("item" .
-		      (("artistid" . ,(tabulated-list-get-id)))))))))
+		      ((,(assoc-default (buffer-name) ids)
+			. ,(tabulated-list-get-id)))))))))
     (kodi-remote-post "Playlist.Add" params)))
 
 ;;;###autoload
@@ -1115,7 +1098,7 @@ Optional argument _NOCONFIRM revert excepts this param."
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     (define-key map (kbd "d") 'kodi-remote-delete)
-    (define-key map (kbd "a") 'kodi-remote-playlist-add-episode)
+    (define-key map (kbd "a") 'kodi-remote-playlist-add-item)
     map)
   "Keymap for `kodi-remote-playlist-mode'.")
 
@@ -1135,7 +1118,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 	(menu-map (make-sparse-keymap)))
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "g") 'kodi-remote-draw-music)
-    (define-key map (kbd "a") 'kodi-remote-playlist-add-music)
+    (define-key map (kbd "a") 'kodi-remote-playlist-add-item)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     map)
   "Keymap for `kodi-remote-music-mode'.")
