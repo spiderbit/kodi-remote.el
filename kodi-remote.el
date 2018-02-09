@@ -345,7 +345,9 @@ Depending on current window move horizontal in menu (INPUT)
 Optional argument FILTER-WATCHED filters watched episodes."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (pre-params `(("properties" .
-                        ["title" "file" "playcount"])))
+			,(seq-into
+			  (kodi-remote-media-fields 'movie)
+			  'vector))))
 	 (params (list
 		  (append '("params") pre-params
 			  (if filter (list
@@ -369,8 +371,10 @@ Optional argument ID limits to a specific artist."
 					      filter-watched)))))))
 	 (params (list
 		  (append '("params")
-			  '(("properties" .
-			     ["title" "file" "playcount"]))
+			  `(("properties" .
+			     ,(seq-into
+			       (kodi-remote-media-fields 'song)
+			       'vector)))
 			  (if filter (list
 				      (append (list "filter")
 					      filter)))))))
@@ -389,22 +393,32 @@ Optional argument SHOW-ID limits to a specific show.
 Optional argument FILTER-WATCHED filters watched episodes."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (params (list (append '("params")
-			       (if show-id (list (append '("tvshowid") show-id)))
-			       '(("properties" .
-				   ["title" "episode" "playcount"]))
-			       (if filter (list (append (list "filter") filter)))))))
+			       (if show-id
+				   (list
+				    (append '("tvshowid")
+					    show-id)))
+			       `(("properties" .
+				  ,(seq-into
+				    (kodi-remote-media-fields 'episode)
+				    'vector)))
+			       (if filter
+				   (list (append
+					  (list "filter")
+					  filter)))))))
     (kodi-remote-get "VideoLibrary.GetEpisodes" params)))
 
 (defun kodi-remote-get-show-list ()
   "Poll unwatched show."
   (let* ((params
-  	  '(("params" . (("properties" .
-			  ["title" "watchedepisodes" "episode"]))))))
-  (kodi-remote-get "VideoLibrary.GetTVShows" params)))
+  	  `(("params" . (("properties" .
+			  ,(seq-into
+			    (kodi-remote-media-fields 'tvshow)
+			    'vector)))))))
+    (kodi-remote-get "VideoLibrary.GetTVShows" params)))
 
 ;;;###autoload
 (defun kodi-remote-playlist-add-item ()
-  "Add item to playlist"
+  "Add item to playlist."
   (interactive)
   (let* ((ids '(("*kodi-remote-music*" . "songid")
 		("*kodi-remote-series-episodes*" . "episodeid")))
@@ -554,11 +568,15 @@ Argument DIRECTION can be up or down."
 
 (defun kodi-remote-playlists-get ()
   "Requests playlist items."
-  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
+  (if (and kodi-dangerous-options
+	   (boundp 'kodi-access-host))
       (let* ((params
-	      `(("params" . (("directory" .
-			      ,(concat (kodi-profile-path)
-				       "/userdata/playlists/video")))))))
+	      `(("params" .
+		 (("directory" .
+		   ,(concat
+		     (kodi-profile-path)
+		     "/userdata/playlists/video"))
+		  ("properties" . ("title")))))))
 	(kodi-remote-get "Files.GetDirectory" params))))
 
 (defun kodi-remote-video-scan ()
@@ -905,6 +923,15 @@ Argument BUTTON contains the artist-id"
     (setq kodi-selected-artist (button-get button 'id)))
   (kodi-remote-songs))
 
+(defun kodi-remote-media-fields (type)
+  "Get the interesting fields of each media TYPE."
+  (pcase type
+    ('song '( artist album track title file playcount))
+    ('movie '(title file playcount))
+    ('episode '(title episode playcount))
+    ('tvshow '( title watchedepisodes episode))
+    ('file '( title))))
+
 (defun kodi-generate-entry (action id subitems hide-ext item)
   "Generate tabulated-list entry for kodi media buffers.
 Argument ACTION button action.
@@ -914,28 +941,58 @@ Argument HIDE-EXT if t removes file extension from entry label
 Argument ITEM the media data from kodi."
   (let* ((number-of-nodes
 	  (if subitems
-	      (kodi-show-get-number-of-episodes item)
-	    5)) ; not abstracted yet
+	      (kodi-show-get-number-of-episodes
+	       item)))
 	 (subitemid (assoc-default id item))
-	 (playcount (assoc-default 'playcount item))
-	 (label (decode-coding-string
-		 (assoc-default 'label item) 'utf-8))
-	 (label-sans-ext (file-name-sans-extension label))
-	 (itemid (assoc-default id item)))
-    (when (or (> number-of-nodes 0) (equal kodi-watch-filter "all"))
-      (let* ((button1 `(,(if hide-ext label-sans-ext label)
-			action ,action
-			id ,subitemid
-			face ,(if (and playcount (> playcount 0))
-				  'font-lock-comment-face 'default)))
-	     (button2 `(,((lambda (x)
-			    (if (< 0 x) (number-to-string x) ""))
-			  number-of-nodes)
-			action ,action
-			id ,subitemid)))
-	(list subitemid
-	      (if subitems
-		  (vector button1 button2)(vector button1)))))))
+	 (keys (append
+		(remove-if
+		 (lambda (x)
+		   (memq x `(playcount
+			     type file label
+			     episode directory
+			     title ,id)))
+		 (kodi-remote-media-fields
+		  (pcase id
+		    ('songid 'song)
+		    ('movieid 'movie)
+		    ('episodeid 'episode)
+		    ('tvshowid 'tvshow)
+		    ('file 'file))))
+		'(label)))
+	 (playcount (assoc-default
+		     'playcount item)))
+    (when (or (null subitems)
+	      (> number-of-nodes 0)
+	      (equal kodi-watch-filter "all"))
+      (let* ((buttons
+	      (mapcar
+	       (lambda (elem)
+		 `(,(kodi-remote-button-name elem)
+		   action ,action
+		   id ,subitemid
+		   face ,(if (and playcount
+				  (> playcount 0))
+			     'font-lock-comment-face
+			   'default)))
+	       keys)))
+	(list subitemid (seq-into buttons 'vector))))))
+
+(defun kodi-remote-button-name (elem)
+  "Generate Button name for Column ELEM."
+  (decode-coding-string
+   (if (equal
+	elem 'watchedepisodes)
+       ((lambda (x)
+	  (if (< 0 x) (number-to-string x) ""))
+	number-of-nodes)
+     (typecase (assoc-default elem item)
+       (vectorp (progn ;; (if (> (length (assoc-default elem item)) 1)
+		  ;;     (print (assoc-default elem item)))
+		  (elt (assoc-default elem item) 0)))
+       (stringp (assoc-default elem item))
+       (numberp (number-to-string
+		 (assoc-default elem item)))))
+   'utf-8))
 
 (defun kodi-remote-draw ()
   "Draw the buffer with new contents via `kodi-refresh-function'."
@@ -969,6 +1026,8 @@ Optional argument HIDE-EXT if t removes file extension from entry labels."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
+  (setq tabulated-list-format
+        `[("Playlists" 30 t)])
   (kodi-remote-playlists-get)
   (kodi-draw-tab-list 'file nil 'file 'files nil t))
 
@@ -978,7 +1037,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format [("Movies" 30 t)])
+  (setq tabulated-list-format [("Movie" 30 t)])
   (setq mode-name (format
 		   "kodi-remote-movies: %s"
 		   kodi-watch-filter))
@@ -993,8 +1052,8 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-	`[("Series"  30 t)
-	  ("entries" 10 t)])
+	`[("entries" 10 t)
+	  ("Series"  30 t)])
   (setq mode-name
 	(format
 	 "kodi-remote-series: %s"
@@ -1018,8 +1077,8 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show)
-  (kodi-draw-tab-list
-   'episodeid nil 'episodeid 'episodes nil))
+  (kodi-draw-tab-list 'episodeid nil
+		      'episodeid 'episodes nil))
 
 ;;;###autoload
 (defun kodi-remote-draw-music (&optional _arg _noconfirm)
@@ -1027,7 +1086,9 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format [("Songs" 30 t)])
+  (setq tabulated-list-format
+	[("Artist" 15 t)("Album" 15 t)
+	 ("Track" 5 t)("Song" 30 t)])
   (setq mode-name
 	(format
 	 "kodi-remote-music: %s"
@@ -1066,7 +1127,8 @@ Optional argument _NOCONFIRM revert excepts this param."
 		    (entry (list `,id (vector `(,title
 						action sbit-action-playlist
 						id ,id)))))
-	       (setq id (1+ id)) entry)) items)))
+	       (setq id (1+ id)) entry))
+		  items)))
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -1149,8 +1211,6 @@ Key bindings:
   "Major Mode for kodi series.
 Key bindings:
 \\{kodi-remote-series-episodes-mode-map}"
-  (setq tabulated-list-format
-        `[("Episodes" 30 t)])
   (setq-local revert-buffer-function #'kodi-remote-draw-episodes))
 
 (define-derived-mode kodi-remote-songs-mode tabulated-list-mode "kodi-remote-songs"
@@ -1163,8 +1223,6 @@ Key bindings:
   "Major Mode for kodi music.
 Key bindings:
 \\{kodi-remote-music-mode-map}"
-  (setq tabulated-list-format
-        `[("Artists" 30 t)])
   (setq-local revert-buffer-function #'kodi-remote-draw-music))
 
 
@@ -1180,8 +1238,6 @@ Key bindings:
   "Major Mode for kodi playlists.
 Key bindings:
 \\{kodi-remote-playlists-mode-map}"
-  (setq tabulated-list-format
-        `[("Playlists" 30 t)])
   (setq-local revert-buffer-function #'kodi-remote-playlists-draw))
 
 ;;;###autoload
@@ -1221,7 +1277,8 @@ Key bindings:
   (let ((name (make-symbol "name")))
     `(let (;; (id (or transmission-torrent-id
            ;;         (cdr (assq 'id (tabulated-list-get-id)))))
-           (,name ,(format "*%s*" (string-remove-suffix "-mode" (symbol-name mode)))))
+           (,name ,(format "*%s*" (string-remove-suffix
+				   "-mode" (symbol-name mode)))))
        (if nil (user-error "No media selected")
          (let ((buffer (or (get-buffer ,name)
                            (generate-new-buffer ,name))))
