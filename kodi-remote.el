@@ -431,7 +431,7 @@ Optional argument FILTER-WATCHED filters watched episodes."
 
 ;;;###autoload
 (defun kodi-remote-playlist-play ()
-  "Add episode to playlist."
+  "Play current active playlist."
   (interactive)
   (let* ((params `(("params" .
 		    (("item" . (("playlistid" . 1))))))))
@@ -501,7 +501,7 @@ Optional argument FILTER-WATCHED filters watched episodes."
 
 ;;;###autoload
 (defun kodi-remote-playlist-clear ()
-  "Add episode to playlist."
+  "Clear playlist."
   (interactive)
   (let* ((params `(("params" .
 		    (("playlistid" . 1))))))
@@ -605,7 +605,7 @@ Argument ID kodi series database identifier."
 (defun kodi-remote-get-active-player-id ()
   "Update currently active player."
   (kodi-remote-get "Player.GetActivePlayers" nil)
-  (setq kodi-active-player ( let-alist (elt kodi-properties 0) .playerid)))
+  (setq kodi-active-player (let-alist (elt kodi-properties 0) .playerid)))
 
 ;;;###autoload
 (defun kodi-remote-volume-decrease ()
@@ -926,7 +926,7 @@ Argument BUTTON contains the artist-id"
 (defun kodi-remote-media-fields (type)
   "Get the interesting fields of each media TYPE."
   (pcase type
-    ('song '( artist album track title file playcount))
+    ('song '(artist album track title file playcount))
     ('movie '(title file playcount))
     ('episode '(title episode playcount))
     ('tvshow '( title watchedepisodes episode))
@@ -947,16 +947,13 @@ Argument ITEM the media data from kodi."
 	 (keys (append
 		(remove-if
 		 (lambda (x)
-		   (memq x `(playcount
-			     type file label
+		   (memq x `(playcount type file label
 			     episode directory
 			     title ,id)))
 		 (kodi-remote-media-fields
 		  (pcase id
-		    ('songid 'song)
-		    ('movieid 'movie)
-		    ('episodeid 'episode)
-		    ('tvshowid 'tvshow)
+		    ('songid 'song)('movieid 'movie)
+		    ('episodeid 'episode)('tvshowid 'tvshow)
 		    ('file 'file))))
 		'(label)))
 	 (playcount (assoc-default
