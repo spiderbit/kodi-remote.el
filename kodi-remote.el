@@ -189,6 +189,24 @@ Argument DIRECTION which direction and how big of step to seek."
 	  `(("params" . (("item" . ((,field-name . ,id))))))))
     (kodi-remote-post "Player.Open" params)))
 
+(defun kodi-remote-play-continious ()
+  "Play all items in the list starting at curser pos."
+  (interactive)
+  (let* ((start (position (assq (tabulated-list-get-id)
+			  tabulated-list-entries)
+			  tabulated-list-entries))
+	 (ids '(("*kodi-remote-music*" . "songid")
+		("*kodi-remote-series-episodes*" . "episodeid"))))
+    (kodi-remote-playlist-clear)
+    (dolist (button (seq-subseq tabulated-list-entries start))
+      (let* ((params `(("params" .
+			(("playlistid" . 1)
+			 ("item" .
+			  ((,(assoc-default (buffer-name) ids)
+			    . ,(car button)))))))))
+	(kodi-remote-post "Playlist.Add" params))))
+  (kodi-remote-playlist-play))
+
 (defun kodi-remote-play-playlist-item (position)
   "Play series in playlist POSITION with given ID."
   (let* ((params
@@ -1158,6 +1176,7 @@ Optional argument _NOCONFIRM revert excepts this param."
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     (define-key map (kbd "d") 'kodi-remote-delete)
     (define-key map (kbd "a") 'kodi-remote-playlist-add-item)
+    (define-key map (kbd "x") 'kodi-remote-play-continious)
     map)
   "Keymap for `kodi-remote-playlist-mode'.")
 
@@ -1180,6 +1199,7 @@ Optional argument _NOCONFIRM revert excepts this param."
     (define-key map (kbd "a") 'kodi-remote-playlist-add-item)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     (define-key map (kbd "b") 'kodi-remote-filter-band)
+    (define-key map (kbd "x") 'kodi-remote-play-continious)
     map)
   "Keymap for `kodi-remote-music-mode'.")
 
