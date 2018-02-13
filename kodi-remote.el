@@ -227,7 +227,7 @@ Argument DIRECTION which direction and how big of step to seek."
 			  ))
      :headers '(("Content-Type" . "application/json"))
      :parser 'json-read))
-  (wait-for-done))
+  (kodi-remote-sit-for-done))
 
 (defun kodi-remote-input-execute-action (action)
   "Function to send post ACTION json requests."
