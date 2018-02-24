@@ -129,7 +129,7 @@ Argument PARAMS kodi json api argument."
     (if (equal params nil) ()
       (setq request-data
 	    (append request-data params)))
-    ;; (print request-data)
+    ;; (print (json-encode request-data))
     (request
      (kodi-json-url)
      :data (json-encode request-data)
@@ -183,10 +183,20 @@ Argument DIRECTION which direction and how big of step to seek."
 			 ("value" . ,direction))))))
     (kodi-remote-post "Player.Seek" params)))
 
-(defun kodi-remote-play-database-id (field-name id)
+(defun kodi-remote-play-database-id (field-name id resume)
   "Play kodi item with the id type in FIELD-NAME and the given ID."
-  (let* ((params
-	  `(("params" . (("item" . ((,field-name . ,id))))))))
+  (let* ((do-resume
+  	    (if (and
+		 resume
+		 (< 0
+		    (assoc-default
+		     'position resume)))
+		(y-or-n-p "Do you wanna resume")))
+	 (params
+	  `(("params" . (("item" .
+			  ((,field-name . ,id)))
+			 ("options" .
+			  (("resume" . ,(if do-resume t -1)))))))))
     (kodi-remote-post "Player.Open" params)))
 
 (defun kodi-remote-play-continious ()
@@ -895,7 +905,8 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
 Argument FIELD-NAME the name of the id.
 Argument OBJ the button obj."
   (kodi-remote-play-database-id
-   field-name (button-get obj 'id)))
+   field-name (button-get obj 'id)
+   (button-get obj 'resume)))
 
 (defun sbit-action-playlist (obj)
   "Helper method for playlist start buttons.
@@ -945,8 +956,8 @@ Argument BUTTON contains the artist-id"
   "Get the interesting fields of each media TYPE."
   (pcase type
     ('song '(artist album track title file playcount))
-    ('movie '(title file playcount))
-    ('episode '(title episode playcount))
+    ('movie '(title file playcount resume))
+    ('episode '(title episode playcount resume))
     ('tvshow '( title watchedepisodes episode))
     ('file '( title))))
 
@@ -962,11 +973,12 @@ Argument ITEM the media data from kodi."
 	      (kodi-show-get-number-of-episodes
 	       item)))
 	 (subitemid (assoc-default id item))
+	 (resume (assoc-default 'resume item))
 	 (keys (append
 		(remove-if
 		 (lambda (x)
 		   (memq x `(playcount type file label
-			     episode directory
+			     episode directory resume
 			     title ,id)))
 		 (kodi-remote-media-fields
 		  (pcase id
@@ -988,7 +1000,9 @@ Argument ITEM the media data from kodi."
 		   face ,(if (and playcount
 				  (> playcount 0))
 			     'font-lock-comment-face
-			   'default)))
+			   'default)
+		   resume ,resume
+		   ))
 	       keys)))
 	(list subitemid (seq-into buttons 'vector))))))
 
