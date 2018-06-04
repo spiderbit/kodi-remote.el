@@ -1,5 +1,8 @@
 all: test
 
+test-new:
+	emacs -batch -l ert -l tests/kodi-remote-tests-new.el -f ert-run-tests-batch-and-exit
+
 test: prepare
 	HOME=$(PWD)/tests/HOME kodi &
 	emacs -batch -l ert -l tests/kodi-remote-tests.el -f ert-run-tests-batch-and-exit

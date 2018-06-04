@@ -66,6 +66,7 @@
   "Method to access media over tramp."
   :type 'string
   :group 'kodi-remote)
+(defvar kodi-show-df nil)
 (defvar kodi-active-player -1)
 (defvar kodi-active-window nil)
 (defvar kodi-fullscreen nil)
@@ -155,6 +156,13 @@ Argument PARAMS kodi json api argument."
   (interactive)
   (let* ((params '(("params" . (("item" . (("partymode" . "music"))))))))
     (kodi-remote-post "Player.Open" params)))
+
+;;;###autoload
+(defun kodi-remote-toggle-extended-info ()
+  "Toggle extended media information."
+  (interactive)
+  (setq kodi-show-df (not kodi-show-df))
+  (revert-buffer))
 
 ;;;###autoload
 (defun kodi-remote-play-pause ()
@@ -393,6 +401,20 @@ Optional argument ID limits to a specific artist."
 					      filter)))))))
     (kodi-remote-get "AudioLibrary.GetSongs" params)))
 
+(defun kodi-remote-get-item-size (file)
+  "Poll item Size."
+  (let* ((params `(("params" . (("file" . ,file)
+				("properties" .
+				 ["size"]))))))
+  (kodi-remote-get "Files.GetFileDetails" params)))
+
+(defun kodi-remote-get-sources (type)
+  "Poll item sources."
+  (let* ((params `(("params" . (("media" . ,type))))))
+    (kodi-remote-get "Files.GetSources" params))
+  (assoc-default 'sources kodi-properties))
+
+
 (defun kodi-remote-get-artist-list ()
   "Poll music artists."
   (let* ((params
@@ -402,44 +424,42 @@ Optional argument ID limits to a specific artist."
 
 (defun kodi-remote-get-movies ()
   "Poll movies."
-  (kodi-remote-get-item 'movie "VideoLibrary.GetMovies" nil 'movies ))
+  (kodi-remote-get-item 'movie "VideoLibrary.GetMovies" nil 'movies "video"))
 
 (defun kodi-remote-get-show-list ()
   "Poll shows."
-  (kodi-remote-get-item 'tvshow "VideoLibrary.GetTVShows" t 'tvshows))
+  (kodi-remote-get-item 'tvshow "VideoLibrary.GetTVShows" t 'tvshows "video"))
 
 (defun kodi-remote-get-series-episodes (&optional show-id)
   "Poll episodes from shows.
 Optional argument SHOW-ID limits to a specific show."
-  (kodi-remote-get-item 'episode "VideoLibrary.GetEpisodes" nil 'episodes "tvshowid" show-id))
+  (kodi-remote-get-item 'episode "VideoLibrary.GetEpisodes" nil
+			'episodes "video" "tvshowid" show-id))
 
 (defun kodi-remote-get-item (entry-name request-method category
-					&optional data-field id-name id)
+					&optional data-field source-type id-name id)
   "Poll unwatches episodes from show.
 Optional argument SHOW-ID limits to a specific show."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (fields (kodi-remote-media-fields entry-name))
+	 (sources (kodi-remote-get-sources source-type))
 	 (disk-free (seq-contains fields 'diskfree))
-	 (params
-	  (list
-	   (append
-	    '("params")
-	    (if id
-		(list (append `(,id-name) id)))
-	    `(("properties" .
-	       ,(seq-into
-		 (if disk-free (seq-subseq fields 0 -1)
-		    fields)
-		 'vector)))
-	    (if filter
-		(list (append
-		       (list "filter")
-		       filter)))))))
+	 (params (list (append '("params")
+				  (if id (list (append `(,id-name) id)))
+				  `(("properties" .
+				     ,(seq-into
+				       (if disk-free (seq-subseq fields 0 -2)
+					 fields)
+				       'vector)))
+				  (if filter
+				      (list (append
+					     (list "filter")
+					     filter)))))))
     (kodi-remote-get request-method params)
-    (if (and disk-free kodi-dangerous-options (boundp 'kodi-access-host))
-	(kodi-remote-append-disk-free data-field category))))
+    (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
+	(kodi-remote-append-disk-free data-field category sources))))
 
-(defun kodi-remote-append-disk-free (data-name category)
+(defun kodi-remote-append-disk-free (data-name category sources)
   "Helper Function to get free space of items"
   (let ((kodi-path-df '()))
     (setq kodi-properties
@@ -450,22 +470,31 @@ Optional argument SHOW-ID limits to a specific show."
 			    (concat "/" kodi-access-method
 				    ":" kodi-access-host ":/"))
 			  (file-name (assoc-default 'file elem))
-			  (base-path (expand-file-name
-				      (if category ".." "../..") file-name ))
+			  (base-path
+			   (cdaar
+			    (seq-filter (lambda (elt)
+					  (file-in-directory-p
+					   file-name
+					   (assoc-default 'file elt)))
+					sources)))
 			  (size
 			   (or (assoc-default base-path kodi-path-df)
 			       (let*
 				   ((size-line (eshell-command-result
 						(format "df \"%s\" -h --output=avail"
-							file-name)))
-				    (size-part (elt
-						(split-string
-						 size-line)
-						1)))
+							(substring base-path 1))))
+				    (size-part (elt (split-string size-line) 1)))
 				 (setq kodi-path-df
 				       (append kodi-path-df `((,base-path . ,size-part))))
-				 size-part))))
-		     (append elem `((diskfree ., size)))))
+				 size-part)))
+			  (diskused
+			   (elt (split-string (eshell-command-result
+					       (format "du '%s' -hs"
+						       (substring file-name 1))))
+				0)))
+		     ;; (kodi-remote-get-item-size file-name)
+		     (append elem `((diskfree . ,size))
+			     `((diskused . ,diskused)))))
 		 (assoc-default data-name kodi-properties)))))))
 
 ;;;###autoload
@@ -977,12 +1006,13 @@ Argument BUTTON contains the artist-id"
 
 (defun kodi-remote-media-fields (type)
   "Get the interesting fields of each media TYPE."
-  (pcase type
-    ('song '(artist album track title file playcount))
-    ('movie '(title playcount resume file diskfree))
-    ('episode '(title episode playcount resume file diskfree))
-    ('tvshow '(title watchedepisodes episode file diskfree))
-    ('file '(title))))
+  (let* ((disk-fields (if kodi-show-df '(diskfree diskused))))
+    (pcase type
+      ('song '(artist album track title file playcount))
+      ('movie (concatenate 'list '(title playcount resume file) disk-fields))
+      ('episode (concatenate 'list '(title episode playcount resume file) disk-fields))
+      ('tvshow (concatenate 'list '(title watchedepisodes episode file) disk-fields))
+      ('file '(title)))))
 
 (defun kodi-generate-entry (action id subitems hide-ext item)
   "Generate tabulated-list entry for kodi media buffers.
@@ -1079,7 +1109,7 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-        `[("Playlists" 30 t)])
+        '[("Playlists" 30 t)])
   (kodi-remote-playlists-get)
   (kodi-draw-tab-list 'file nil 'file 'files nil t))
 
@@ -1090,12 +1120,13 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-	`[,(if kodi-dangerous-options
-	       '("Disk Free"  10 t))
-	  ("Movie" 30 t)])
-  (setq mode-name (format
-		   "kodi-remote-movies: %s"
-		   kodi-watch-filter))
+	(concatenate 'vector
+		   (if (and kodi-dangerous-options kodi-show-df)
+			'[("Disk Free" 10 t)
+			 ("Disk Used" 10 t)])
+		   '[("Movies"  30 t)]))
+  (setq mode-name
+	(format "kodi-remote-movies: %s" kodi-watch-filter))
   (kodi-remote-video-scan)
   (kodi-remote-get-movies)
   (kodi-draw-tab-list 'movieid nil 'movieid 'movies nil))
@@ -1107,10 +1138,11 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-	`[("entries" 10 t)
-	  ,(if kodi-dangerous-options
-	      '("Disk Free"  10 t))
-	  ("Series"  30 t)])
+	(concatenate 'vector '[("entries" 10 t)]
+		   (if (and kodi-dangerous-options kodi-show-df)
+			'[("Disk Free" 10 t)
+			 ("Disk Used" 10 t)])
+		   '[("Series"  30 t)]))
   (setq mode-name
 	(format
 	 "kodi-remote-series: %s"
@@ -1127,9 +1159,11 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (setq tabulated-list-format
-	`[,(if kodi-dangerous-options
-	       '("Disk Free"  10 t))
-	  ("Episode" 30 t)])
+	(concatenate 'vector
+		     (if (and kodi-dangerous-options kodi-show-df)
+			 '[("Disk Free" 10 t)
+			  ("Disk Used" 10 t)])
+		     '[("Episode"  30 t)]))
   (setq mode-name
 	(format
 	 "kodi-remote-series-episodes: %s"
@@ -1217,6 +1251,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 (defvar kodi-remote-series-episodes-mode-map
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "f") 'kodi-remote-toggle-extended-info)
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
     (define-key map (kbd "d") 'kodi-remote-delete)
@@ -1228,6 +1263,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 (defvar kodi-remote-series-mode-map
   (let ((map (make-sparse-keymap))
 	(menu-map (make-sparse-keymap)))
+    (define-key map (kbd "f") 'kodi-remote-toggle-extended-info)
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "g") 'kodi-remote-draw-shows)
     (define-key map (kbd "c") 'kodi-remote-series-clean)
@@ -1253,6 +1289,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 	(menu-map (make-sparse-keymap)))
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
+    (define-key map (kbd "f") 'kodi-remote-toggle-extended-info)
     ;; (define-key map (kbd "d") 'kodi-remote-delete)
     ;; (define-key map (kbd "a") 'kodi-remote-playlist-add-episode)
     map)
