@@ -896,11 +896,7 @@ Key bindings:
   "Toggle visability of watched/listened media."
   (interactive)
   (kodi-switch-watch-filter)
-  (pcase (buffer-name)
-    ("*kodi-remote-series-episodes*" (kodi-remote-draw-episodes))
-    ("*kodi-remote-series*" (kodi-remote-draw-shows))
-    ("*kodi-remote-movies*" (kodi-remote-draw-movies))
-    ("*kodi-remote-music*" (kodi-remote-draw-music))))
+  (revert-buffer))
 
 (defun kodi-remote-delete-multiple (ids)
   "Deletes all entries with id in IDS list."
