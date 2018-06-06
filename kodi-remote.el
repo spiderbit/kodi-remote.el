@@ -1115,14 +1115,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	(concatenate 'vector
-		   (if (and kodi-dangerous-options kodi-show-df)
-			'[("Disk Free" 10 t)
-			 ("Disk Used" 10 t)])
-		   '[("Movies"  30 t)]))
-  (setq mode-name
-	(format "kodi-remote-movies: %s" kodi-watch-filter))
+  (kodi-remote-tab-header "Movies" "movies")
   (kodi-remote-video-scan)
   (kodi-remote-get-movies)
   (kodi-draw-tab-list 'movieid nil 'movieid 'movies nil))
@@ -1133,16 +1126,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	(concatenate 'vector '[("entries" 10 t)]
-		   (if (and kodi-dangerous-options kodi-show-df)
-			'[("Disk Free" 10 t)
-			 ("Disk Used" 10 t)])
-		   '[("Series"  30 t)]))
-  (setq mode-name
-	(format
-	 "kodi-remote-series: %s"
-	 kodi-watch-filter))
+  (kodi-remote-tab-header "Series" "series")
   (kodi-remote-video-scan)
   (kodi-remote-get-show-list)
   (kodi-draw-tab-list 'kodi-remote-series-episodes-wrapper t
@@ -1154,21 +1138,25 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	(concatenate 'vector
-		     (if (and kodi-dangerous-options kodi-show-df)
-			 '[("Disk Free" 10 t)
-			  ("Disk Used" 10 t)])
-		     '[("Episode"  30 t)]))
-  (setq mode-name
-	(format
-	 "kodi-remote-series-episodes: %s"
-	 kodi-watch-filter))
+  (kodi-remote-tab-header "Episode" "series-episode")
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show)
   (kodi-draw-tab-list 'episodeid nil
 		      'episodeid 'episodes nil))
+
+(defun kodi-remote-tab-header (media-column-name mode-tail-name)
+  "docstring"
+  (setq tabulated-list-format
+	(concatenate 'vector
+		     (if (and kodi-dangerous-options
+			      kodi-show-df)
+			 '[("Disk Free" 10 t)
+			  ("Disk Used" 10 t)])
+		     `[(,media-column-name  30 t)]))
+  (setq mode-name
+	(format	"kodi-remote-%s: %s" mode-tail-name
+		kodi-watch-filter)))
 
 ;;;###autoload
 (defun kodi-remote-draw-music (&optional _arg _noconfirm)
