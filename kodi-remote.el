@@ -192,7 +192,8 @@ Argument DIRECTION which direction and how big of step to seek."
     (kodi-remote-post "Player.Seek" params)))
 
 (defun kodi-remote-play-database-id (field-name id resume)
-  "Play kodi item with the id type in FIELD-NAME and the given ID."
+  "Play kodi item with the id type in FIELD-NAME and the given ID.
+Argument RESUME continue playback where stopped before else start from beginning."
   (let* ((do-resume
   	    (if (and
 		 resume
@@ -402,14 +403,16 @@ Optional argument ID limits to a specific artist."
     (kodi-remote-get "AudioLibrary.GetSongs" params)))
 
 (defun kodi-remote-get-item-size (file)
-  "Poll item Size."
+  "Poll item Size.
+Argument FILE the name of the file you want the size."
   (let* ((params `(("params" . (("file" . ,file)
 				("properties" .
 				 ["size"]))))))
   (kodi-remote-get "Files.GetFileDetails" params)))
 
 (defun kodi-remote-get-sources (type)
-  "Poll item sources."
+  "Poll item sources.
+Argument TYPE video or audio."
   (let* ((params `(("params" . (("media" . ,type))))))
     (kodi-remote-get "Files.GetSources" params))
   (assoc-default 'sources kodi-properties))
@@ -460,7 +463,7 @@ Optional argument SHOW-ID limits to a specific show."
 	(kodi-remote-append-disk-free data-field category sources))))
 
 (defun kodi-remote-append-disk-free (data-name category sources)
-  "Helper Function to get free space of items"
+  "Helper Function to get free space of items."
   (let ((kodi-path-df '()))
     (setq kodi-properties
 	  `((,data-name
