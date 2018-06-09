@@ -1126,7 +1126,7 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (kodi-remote-tab-header "Series" "series")
+  (kodi-remote-tab-header "Series" "series" t)
   (kodi-remote-video-scan)
   (kodi-remote-get-show-list)
   (kodi-draw-tab-list 'kodi-remote-series-episodes-wrapper t
@@ -1138,21 +1138,26 @@ Optional argument _NOCONFIRM revert excepts this param."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (kodi-remote-tab-header "Episode" "series-episode")
+  (kodi-remote-tab-header "Episode" "series-episodes")
   (kodi-remote-video-scan)
   (kodi-remote-get-series-episodes
    kodi-selected-show)
   (kodi-draw-tab-list 'episodeid nil
 		      'episodeid 'episodes nil))
 
-(defun kodi-remote-tab-header (media-column-name mode-tail-name)
-  "docstring"
+(defun kodi-remote-tab-header (media-column-name mode-tail-name &optional subitems)
+  "Generate the header of a kodi media mode.
+Argument MEDIA-COLUMN-NAME Entry name.
+Argument MODE-TAIL-NAME Name of the media buffer type.
+Optional argument SUBITEMS has this mode subitems."
   (setq tabulated-list-format
 	(concatenate 'vector
+		     (if subitems
+			 '[("entries" 10 t)])
 		     (if (and kodi-dangerous-options
 			      kodi-show-df)
 			 '[("Disk Free" 10 t)
-			  ("Disk Used" 10 t)])
+			   ("Disk Used" 10 t)])
 		     `[(,media-column-name  30 t)]))
   (setq mode-name
 	(format	"kodi-remote-%s: %s" mode-tail-name
