@@ -492,7 +492,7 @@ Optional argument SHOW-ID limits to a specific show."
 				 size-part)))
 			  (diskused
 			   (elt (split-string (eshell-command-result
-					       (format "du '%s' -hs"
+					       (format "du \"%s\" -hs"
 						       (substring file-name 1))))
 				0)))
 		     ;; (kodi-remote-get-item-size file-name)

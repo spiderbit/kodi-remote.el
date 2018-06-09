@@ -211,10 +211,10 @@
 			      ((:input '("df \"PATH1\" -h --output=avail")
 				       :output "Avail  60G"
 				       :min-occur 0)
-			       (:input '("du 'PATH/Movie 1' -hs")
+			       (:input '("du \"PATH/Movie 1\" -hs")
 				       :output "8.1G	PATH/Movie 2\n"
 				       :min-occur 0)
-			       (:input '("du 'PATH/Movie 2' -hs")
+			       (:input '("du \"PATH/Movie 2\" -hs")
 				       :output "8.1G	PATH/Movie 2\n"
 				       :min-occur 0))))
     (let* ((kodi-properties (kodi-movies-response-data))
@@ -244,6 +244,7 @@
 				  6 "\n\n(fn &rest ARGS2)"]
 			    id 1 face default resume nil)])
 		       (2 [("60G" action
+
 			    #[128 "\302\300\303\301\"\"\207"
 				  [sbit-action (movieid) apply append]
 				  6 "\n\n(fn &rest ARGS2)"]
@@ -300,10 +301,10 @@
 			      ((:input '("df \"PATH/\" -h --output=avail")
 				       :output "Avail  60G"
 				       :min-occur 0)
-			       (:input '("du 'PATH/SERIES1' -hs")
+			       (:input '("du \"PATH/SERIES1\" -hs")
 				       :output "8.1G	PATH/SERIES1\n"
 				       :min-occur 0)
-			       (:input '("du 'PATH/SERIES2' -hs")
+			       (:input '("du \"PATH/SERIES2\" -hs")
 				       :output "8.1G	PATH/SERIES2\n"
 				       :min-occur 0))))
     (let* ((kodi-properties (kodi-series-response-data))
@@ -373,11 +374,11 @@
 				       :output "Avail  60G"
 				       :min-occur 0)
 			       (:input
-				'("du 'PATH/Foo/Foo.S01E01.mkv' -hs")
+				'("du \"PATH/Foo/Foo.S01E01.mkv\" -hs")
 				:output "8.1G	PATH/Foo/Foo.S01E01.mkv\n"
 				:min-occur 0)
 			       (:input
-				'("du 'PATH/Foo/Foo.S01E02.mkv' -hs")
+				'("du \"PATH/Foo/Foo.S01E02.mkv\" -hs")
 				:output "8.1G	PATH/Foo/Foo.S01E02.mkv\n"
 				:min-occur 0))))
     (let* ((kodi-properties (kodi-episodes-response-data))
