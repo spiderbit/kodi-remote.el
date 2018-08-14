@@ -50,14 +50,12 @@
        (kodi-remote-get (a b)
 			:ordered nil
 			((:input '("Files.GetSources"
-				   (("params"
-				     ("media" . "video"))))
+				   (("media" . "video")))
 				 :min-occur 0)
 			 (:input '("VideoLibrary.GetTVShows"
-				   (("params"
-				     ("properties" .
-				      [title watchedepisodes
-					     episode file]))))
+				   (("properties" .
+				     [title watchedepisodes
+					    episode file])))
 				 :min-occur 0))))
     (let* ((kodi-properties (kodi-series-response-data))
 	   (kodi-watch-filter "all")
@@ -85,17 +83,15 @@
        (kodi-remote-get (a b)
 			:ordered nil
 			((:input '("Files.GetSources"
-				   (("params"
-				     ("media" . "video"))))
+				   (("media" . "video")))
 				 :min-occur 0)
 			 (:input '("VideoLibrary.GetTVShows"
-			 	   (("params"
-			 	     ("properties" .
-			 	      [title watchedepisodes
-			 		     episode file])
-			 	     ("filter" ("field" . "playcount")
-				      ("operator" . "greaterthan")
-				      ("value" . "0")))))
+			 	   (("properties" .
+				     [title watchedepisodes
+					    episode file])
+				    ("filter" ("field" . "playcount")
+				     ("operator" . "greaterthan")
+				     ("value" . "0"))))
 				 :min-occur 0))))
     (let* ((kodi-properties (kodi-series-response-data))
 	   (kodi-watch-filter "seen")
@@ -121,17 +117,15 @@
       ((tabulated-list-print () ((:input nil :min-occur 0)))
        (kodi-remote-get (a b)
 			((:input '("Files.GetSources"
-				   (("params"
-				     ("media" . "video"))))
+				   (("media" . "video")))
 				 :min-occur 0)
 			 (:input '("VideoLibrary.GetTVShows"
-			 	   (("params"
-			 	     ("properties" .
-			 	      [title watchedepisodes
-			 		     episode file])
-			 	     ("filter" ("field" . "playcount")
-				      ("operator" . "is")
-				      ("value" . "0")))))
+			 	   (("properties" .
+				     [title watchedepisodes
+					    episode file])
+				    ("filter" ("field" . "playcount")
+				     ("operator" . "is")
+				     ("value" . "0"))))
 				 :min-occur 0))))
     (let* ((kodi-properties (kodi-series-response-data))
 	   (kodi-watch-filter "unseen")
@@ -155,13 +149,11 @@
        (kodi-remote-get (a b)
 			:ordered nil
 			((:input '("Files.GetSources"
-				   (("params"
-				     ("media" . "video"))))
+				   (("media" . "video")))
 				 :min-occur 0)
 			 (:input '("VideoLibrary.GetMovies"
-			 	   (("params"
-			 	     ("properties" .
-			 	      [title playcount resume file]))))
+			 	   (("properties" .
+				     [title playcount resume file])))
 				 :min-occur 0))))
     (let* ((kodi-properties (kodi-movies-response-data))
 	   (kodi-watch-filter "all")(kodi-show-df nil))
@@ -190,12 +182,10 @@
        ;; 				       :min-occur 0)))
        (kodi-remote-get (a b)
 			((:input '("Files.GetSources"
-				   (("params"
-				     ("media" . "video"))))
+				   (("media" . "video")))
 				 :min-occur 0)
 			 (:input '("VideoLibrary.GetMovies"
-				   (("params"
-				     ("properties" . [title playcount resume file]))))
+				   (("properties" . [title playcount resume file])))
 				 :min-occur 0)))
        (kodi-remote-get-sources (a) ((:input '("video")
 					     :output '[((file . "/PATH1")
@@ -269,24 +259,20 @@
        ;; 					 nil)
        ;; 				       :min-occur 0)))
        (kodi-remote-get (a b) ((:input '("Files.GetSources"
-					 (("params"
-					   ("media" . "video"))))
+					 (("media" . "video")))
 				       :min-occur 0)
 			       (:input '("VideoLibrary.GetTVShows"
-					 (("params"
-					   ("properties" .
-					    [title watchedepisodes
-						   episode file])
-					   )))
+					 (("properties" .
+					   [title watchedepisodes
+						  episode file])))
 				       :min-occur 0)
 			       (:input '("VideoLibrary.GetTVShows"
-					 (("params"
-					   ("properties" .
-					    [title watchedepisodes
-						   episode file])
-					   ("filter" ("field" . "playcount")
-					    ("operator" . "(insert )s")
-					    ("value" . "0")))))
+					 (("properties" .
+					   [title watchedepisodes
+						  episode file])
+					  ("filter" ("field" . "playcount")
+					   ("operator" . "(insert )s")
+					   ("value" . "0"))))
 				       :min-occur 0)))
        (kodi-remote-get-sources (a) ((:input '("video")
 					     :output '[((file . "/PATH/")
@@ -344,21 +330,18 @@
        ;; 					 nil)
        ;; 				       :min-occur 0)))
        (kodi-remote-get (a b) ((:input '("Files.GetSources"
-					 (("params"
-					   ("media" . "video"))))
+					 (("media" . "video")))
 				       :min-occur 0)
 			       (:input '("VideoLibrary.GetEpisodes"
-					 (("params"
-					   ("tvshowid" . 10)
-					   ("properties" .
-					    [title episode playcount resume
-						   file]))))
+					 (("tvshowid" . 10)
+					  ("properties" .
+					   [title episode playcount resume
+						  file])))
 				       :min-occur 0)
 			       (:input '("VideoLibrary.GetEpisodes"
-					 (("params"
-					   ("properties" .
-					    [title episode playcount resume
-						   file]))))
+					 (("properties" .
+					   [title episode playcount resume
+						  file])))
 				       :min-occur 0)))
        (kodi-remote-get-sources (a) ((:input '("video")
 					     :output '[((file . "/PATH1")

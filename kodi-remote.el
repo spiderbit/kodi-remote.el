@@ -101,21 +101,19 @@
 Argument METHOD kodi json api argument.
 Argument PARAMS kodi json api argument."
   (let* ((default-directory "~")
-	 (request-data
-	  `(("id" . 0)
-	   ("jsonrpc" . "2.0")
-	   ("method" . ,method))))
-    (if (equal params nil) ()
-    	(setq request-data
-	      (append request-data params)))
+	 (request-data (append `(("id" . 0)
+				 ("jsonrpc" . "2.0")
+				 ("method" . ,method))
+			       (if params
+				   `(("params" . ,params))))))
     ;; (print request-data)
     (request
      (kodi-json-url)
      :type "POST"
      :data (json-encode request-data)
      :headers '(("Content-Type" . "application/json"))
-     :parser 'json-read))
-  (kodi-remote-sit-for-done))
+     :parser 'json-read)
+  (kodi-remote-sit-for-done)))
 
 (defun kodi-remote-get (method params)
   "Function to send get requests to the kodi instance.
@@ -123,14 +121,12 @@ Argument METHOD kodi json api argument.
 Argument PARAMS kodi json api argument."
   (setq kodi-request-running t)
   (let* ((default-directory "~")
-	 (request-data
-	  `(("id" . 0)
-	    ("jsonrpc" . "2.0")
-	    ("method" . ,method))))
-    (if (equal params nil) ()
-      (setq request-data
-	    (append request-data params)))
-    ;; (print (json-encode request-data))
+	 (request-data (append `(("id" . 0)
+				 ("jsonrpc" . "2.0")
+				 ("method" . ,method))
+			       (if params
+				   `(("params" . ,params))))))
+    ;; (print request-data)
     (request
      (kodi-json-url)
      :data (json-encode request-data)
@@ -154,7 +150,7 @@ Argument PARAMS kodi json api argument."
 (defun kodi-remote-start-music-party ()
   "Start musik playing in kodi in party mode."
   (interactive)
-  (let* ((params '(("params" . (("item" . (("partymode" . "music"))))))))
+  (let* ((params '(("item" . (("partymode" . "music"))))))
     (kodi-remote-post "Player.Open" params)))
 
 ;;;###autoload
@@ -169,8 +165,7 @@ Argument PARAMS kodi json api argument."
   "Toggle play/pause of active player."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (let* ((params
-	  `(("params" . (("playerid" . ,kodi-active-player))))))
+  (let* ((params `(("playerid" . ,kodi-active-player))))
     (kodi-remote-post "Player.PlayPause" params)))
 
 ;;;###autoload
@@ -178,34 +173,25 @@ Argument PARAMS kodi json api argument."
   "Stopps active player."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (let* ((params
-	  `(("params" . (("playerid" . ,kodi-active-player))))))
+  (let* ((params `(("playerid" . ,kodi-active-player))))
     (kodi-remote-post "Player.Stop" params)))
 
 (defun kodi-remote-player-seek (direction)
   "Seek active player.
 Argument DIRECTION which direction and how big of step to seek."
   (kodi-remote-get-active-player-id)
-  (let* ((params
-	  `(("params" . (("playerid" . ,kodi-active-player)
-			 ("value" . ,direction))))))
+  (let* ((params `(("playerid" . ,kodi-active-player)
+		   ("value" . ,direction))))
     (kodi-remote-post "Player.Seek" params)))
 
 (defun kodi-remote-play-database-id (field-name id resume)
   "Play kodi item with the id type in FIELD-NAME and the given ID.
 Argument RESUME continue playback where stopped before else start from beginning."
-  (let* ((do-resume
-  	    (if (and
-		 resume
-		 (< 0
-		    (assoc-default
-		     'position resume)))
-		(y-or-n-p "Do you wanna resume")))
-	 (params
-	  `(("params" . (("item" .
-			  ((,field-name . ,id)))
-			 ("options" .
-			  (("resume" . ,(if do-resume t -1)))))))))
+  (let* ((do-resume (if (and resume
+			     (< 0 (assoc-default 'position resume)))
+			(y-or-n-p "Do you wanna resume")))
+	 (params `(("item" . ((,field-name . ,id)))
+		   ("options" . (("resume" . ,(if do-resume t -1)))))))
     (kodi-remote-post "Player.Open" params)))
 
 (defun kodi-remote-play-continious ()
@@ -218,19 +204,16 @@ Argument RESUME continue playback where stopped before else start from beginning
 		("*kodi-remote-series-episodes*" . "episodeid"))))
     (kodi-remote-playlist-clear)
     (dolist (button (seq-subseq tabulated-list-entries start))
-      (let* ((params `(("params" .
-			(("playlistid" . 1)
-			 ("item" .
-			  ((,(assoc-default (buffer-name) ids)
-			    . ,(car button)))))))))
+      (let* ((params `(("playlistid" . 1)
+		       ("item" . ((,(assoc-default (buffer-name) ids)
+				   . ,(car button)))))))
 	(kodi-remote-post "Playlist.Add" params))))
   (kodi-remote-playlist-play))
 
 (defun kodi-remote-play-playlist-item (position)
   "Play series in playlist POSITION with given ID."
-  (let* ((params
-	  `(("params" . (("item" . (("playlistid" . 1)
-				    ("position" . ,position))))))))
+  (let* ((params `(("item" . (("playlistid" . 1)
+			      ("position" . ,position))))))
     (kodi-remote-post "Player.Open" params)))
 
 ;;;###autoload
@@ -238,8 +221,7 @@ Argument RESUME continue playback where stopped before else start from beginning
   "Toggle Fullscreen."
   (interactive)
   (kodi-remote-get-active-player-id)
-  (let* ((params
-	  `(("params" . (("fullscreen" . "toggle"))))))
+  (let* ((params `(("fullscreen" . "toggle"))))
     (kodi-remote-post "Gui.SetFullScreen" params)))
 
 ;;;###autoload
@@ -248,8 +230,7 @@ Argument RESUME continue playback where stopped before else start from beginning
   (interactive)
   (kodi-remote-get-volume)
   (let* ((vol (+ kodi-volume offset)))
-    (let* ((params
-	    `(("params" . (("volume" . ,vol))))))
+    (let* ((params `(("volume" . ,vol))))
       (kodi-remote-post "Application.SetVolume" params))))
 
 (defun kodi-remote-input (input)
@@ -268,8 +249,7 @@ Argument RESUME continue playback where stopped before else start from beginning
 
 (defun kodi-remote-input-execute-action (action)
   "Function to send post ACTION json requests."
-  (let* ((params
-	  `(("params" . (("action" . ,action))))))
+  (let* ((params `(("action" . ,action))))
     (kodi-remote-post "Input.ExecuteAction" params)))
 
 (defun kodi-remote-input-direct (seek input)
@@ -350,8 +330,7 @@ Depending on current window move horizontal in menu (INPUT)
 
 (defun kodi-remote-get-volume ()
   "Poll current volume."
-  (let* ((params
-	  '(("params" . (("properties" . ("volume")))))))
+  (let* ((params '(("properties" . ("volume")))))
     (kodi-remote-get "Application.GetProperties" params))
   (setq kodi-volume (let-alist kodi-properties .volume)))
 
@@ -391,38 +370,30 @@ Optional argument ID limits to a specific artist."
 				    (list artist-filter
 					  (if filter-watched
 					      filter-watched)))))))
-	 (params (list
-		  (append '("params")
-			  `(("properties" .
-			     ,(seq-into
-			       (kodi-remote-media-fields 'song)
-			       'vector)))
-			  (if filter (list
-				      (append (list "filter")
-					      filter)))))))
+	 (params (append `(("properties" .
+			   ,(seq-into (kodi-remote-media-fields 'song) 'vector)))
+			 (if filter (list
+				     (append (list "filter") filter))))))
     (kodi-remote-get "AudioLibrary.GetSongs" params)))
 
 (defun kodi-remote-get-item-size (file)
   "Poll item Size.
 Argument FILE the name of the file you want the size."
-  (let* ((params `(("params" . (("file" . ,file)
-				("properties" .
-				 ["size"]))))))
+  (let* ((params `(("file" . ,file)
+		   ("properties" . ["size"]))))
   (kodi-remote-get "Files.GetFileDetails" params)))
 
 (defun kodi-remote-get-sources (type)
   "Poll item sources.
 Argument TYPE video or audio."
-  (let* ((params `(("params" . (("media" . ,type))))))
+  (let* ((params `(("media" . ,type))))
     (kodi-remote-get "Files.GetSources" params))
   (assoc-default 'sources kodi-properties))
 
 
 (defun kodi-remote-get-artist-list ()
   "Poll music artists."
-  (let* ((params
-  	  '(("params" . (("properties" .
-			  ["genre"]))))))
+  (let* ((params '(("properties" . ["genre"]))))
   (kodi-remote-get "AudioLibrary.GetArtists" params)))
 
 (defun kodi-remote-get-movies ()
@@ -447,17 +418,12 @@ Optional argument SHOW-ID limits to a specific show."
 	 (fields (kodi-remote-media-fields entry-name))
 	 (sources (kodi-remote-get-sources source-type))
 	 (disk-free (seq-contains fields 'diskfree))
-	 (params (list (append '("params")
-				  (if id (list (append `(,id-name) id)))
-				  `(("properties" .
-				     ,(seq-into
-				       (if disk-free (seq-subseq fields 0 -2)
-					 fields)
-				       'vector)))
-				  (if filter
-				      (list (append
-					     (list "filter")
-					     filter)))))))
+	 (params (append (if id (list (append `(,id-name) id)))
+			 `(("properties" . ,(seq-into
+					     (if disk-free
+						 (seq-subseq fields 0 -2) fields)
+					     'vector)))
+			 (if filter (list (append (list "filter") filter))))))
     (kodi-remote-get request-method params)
     (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
 	(kodi-remote-append-disk-free data-field category sources))))
@@ -506,19 +472,16 @@ Optional argument SHOW-ID limits to a specific show."
   (interactive)
   (let* ((ids '(("*kodi-remote-music*" . "songid")
 		("*kodi-remote-series-episodes*" . "episodeid")))
-	 (params `(("params" .
-		    (("playlistid" . 1)
-		     ("item" .
-		      ((,(assoc-default (buffer-name) ids)
-			. ,(tabulated-list-get-id)))))))))
+	 (params `(("playlistid" . 1)
+		   ("item" . ((,(assoc-default (buffer-name) ids)
+			       . ,(tabulated-list-get-id)))))))
     (kodi-remote-post "Playlist.Add" params)))
 
 ;;;###autoload
 (defun kodi-remote-playlist-play ()
   "Play current active playlist."
   (interactive)
-  (let* ((params `(("params" .
-		    (("item" . (("playlistid" . 1))))))))
+  (let* ((params `(("item" . (("playlistid" . 1))))))
     (kodi-remote-post "Player.Open" params)))
 
 (defun kodi-profile-path ()
@@ -587,8 +550,7 @@ Optional argument SHOW-ID limits to a specific show."
 (defun kodi-remote-playlist-clear ()
   "Clear playlist."
   (interactive)
-  (let* ((params `(("params" .
-		    (("playlistid" . 1))))))
+  (let* ((params `(("playlistid" . 1))))
     (kodi-remote-post "Playlist.Clear" params)))
 
 ;; ;; (setq elnode-webserver-docroot "~/webroot")
@@ -602,23 +564,22 @@ Optional argument SHOW-ID limits to a specific show."
   "Add item/video to playlist.
 Argument URL the file url to the media."
   (interactive "sUrl: ")
-  (let* ((params `(("params" . (("playlistid" . 1)
-				("item" . (("file" . ,url))))))))
+  (let* ((params `(("playlistid" . 1)
+		   ("item" . (("file" . ,url))))))
     (kodi-remote-post "Playlist.Add" params)))
 
 ;;;###autoload
 (defun kodi-remote-playlist-remove ()
   "Remove item/video from playlist."
   (interactive)
-  (let* ((params `(("params" . (("playlistid" . 1)
-				("position" . ,(tabulated-list-get-id)))))))
+  (let* ((params `(("playlistid" . 1)
+		   ("position" . ,(tabulated-list-get-id)))))
     (kodi-remote-post "Playlist.Remove" params)))
 
 (defun kodi-remote-playlist-get ()
   "Requests playlist items."
-  (let* ((params
-  	  '(("params" . (("properties" . ["duration" "runtime" "title" "file"])
-			 ("playlistid" . 1))))))
+  (let* ((params '(("properties" . ["duration" "runtime" "title" "file"])
+		   ("playlistid" . 1))))
     (kodi-remote-get "Playlist.GetItems" params)))
 
 (defun kodi-remote-playlist-swap (direction)
@@ -630,10 +591,9 @@ Argument DIRECTION can be up or down."
 	   (max (length tabulated-list-entries))
 	   (positions (list position1 position2))
 	   (eval (cons 'and (mapcar (lambda (x)(<= 0 x max)) positions)))
-	   (params `(("params"
-		      . (("playlistid" . 1)
-			 ("position1" . ,position1)
-			 ("position2" . ,position2))))))
+	   (params `(("playlistid" . 1)
+		     ("position1" . ,position1)
+		     ("position2" . ,position2))))
       (kodi-remote-post "Playlist.Swap" params)
     ;; (kodi-remote-playlist-draw)
     ))
@@ -654,13 +614,10 @@ Argument DIRECTION can be up or down."
   "Requests playlist items."
   (if (and kodi-dangerous-options
 	   (boundp 'kodi-access-host))
-      (let* ((params
-	      `(("params" .
-		 (("directory" .
-		   ,(concat
-		     (kodi-profile-path)
-		     "/userdata/playlists/video"))
-		  ("properties" . ("title")))))))
+      (let* ((params `(("directory" .
+			,(concat (kodi-profile-path)
+				 "/userdata/playlists/video"))
+		       ("properties" . ("title")))))
 	(kodi-remote-get "Files.GetDirectory" params))))
 
 (defun kodi-remote-video-scan ()
@@ -674,15 +631,13 @@ Argument DIRECTION can be up or down."
 (defun kodi-remote-get-episode-details (id)
   "Poll details of a episode.
 Argument ID kodi series database identifier."
-  (let* ((params
-	  `(("params" . (("episodeid" . ,id)
-			 ("properties" . ("playcount")))))))
+  (let* ((params `(("episodeid" . ,id)
+		   ("properties" . ("playcount")))))
     (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params)))
 
 (defun kodi-remote-get-active-window ()
   "Update currently active window."
-  (let* ((params
-	  '(("params" . (("properties" . ("currentwindow")))))))
+  (let* ((params '(("properties" . ("currentwindow")))))
     (kodi-remote-get "Gui.GetProperties" params))
   (setq kodi-active-window (let-alist kodi-properties .currentwindow.label)))
 
@@ -706,8 +661,7 @@ Argument ID kodi series database identifier."
 ;;;###autoload
 (defun kodi-remote-is-fullscreen ()
   "Update fullscreen status."
-  (let* ((params
-	  '(("params" . (("properties" . ("fullscreen")))))))
+  (let* ((params '(("properties" . ("fullscreen")))))
     (kodi-remote-get "Gui.GetProperties" params))
   (let-alist kodi-properties .fullscreen))
 
@@ -801,8 +755,8 @@ Optional argument LABEL a custom label for the file."
 			   ) "\n")))
   (let* ((stream-url (format "http://%s:8028/%s.pls"
 			     (kodi-client-ip) label))
-  	 (params `(("params" . (("playlistid" . 1)
-				("item" . (("file" . ,stream-url))))))))
+  	 (params `(("playlistid" . 1)
+		   ("item" . (("file" . ,stream-url))))))
     (kodi-remote-post "Playlist.Add" params))
   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
   ;; 			 ":8028/"))
@@ -827,8 +781,8 @@ Optional argument LABEL cutom name of the entry."
   ;; 	(insert (format "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n<movie>\n<title>%s</title>\n</movie>" label)))
   (let* ((stream-url (format "http://%s:8028/%s.strm"
 			     kodi-remote-local-host label))
-	 (params `(("params" . (("playlistid" . 1)
-				("item" . (("file" . ,stream-url))))))))
+	 (params `(("playlistid" . 1)
+		   ("item" . (("file" . ,stream-url))))))
     (kodi-remote-post "Playlist.Add" params))
   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
   ;; 			 ":8028/youtube-titel-321/"))
@@ -912,10 +866,8 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
   (let* ((default-directory "~"))
     (if (and kodi-dangerous-options (boundp 'kodi-access-host))
 	(progn
-	  (let* ((params
-		  `(("params" .
-		     (("episodeid" . ,id)
-		      ("properties" . ("file")))))))
+	  (let* ((params `(("episodeid" . ,id)
+			   ("properties" . ("file")))))
 	    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
 	  (let* ((default-directory
 		   (concat "/" kodi-access-method
@@ -929,27 +881,23 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
 		   1)))
 	    (if (file-writable-p file-name )
 		(delete-file file-name)))
-	  (let* ((params
-		  `(("params" . (("episodeid" . ,id ))))))
+	  (let* ((params `(("episodeid" . ,id ))))
 	    (kodi-remote-post "VideoLibrary.RemoveEpisode" params))))))
 
 (defun kodi-remote-series-clean ()
   "Cleans video library."
   (interactive)
-  (let* ((params nil))
-    (kodi-remote-post "VideoLibrary.Clean" params)))
+  (kodi-remote-post "VideoLibrary.Clean" nil))
 
 (defun kodi-remote-playlist-clean ()
   "Cleans video library."
   (interactive)
-  (let* ((params nil))
-    (kodi-remote-post "Playlist.Clean" params)))
+  (kodi-remote-post "Playlist.Clean" nil))
 
 (defun kodi-remote-series-scan ()
   "Scans kodi for new video content."
   (interactive)
-  (let* ((params nil))
-    (kodi-remote-post "VideoLibrary.Scan" params)))
+  (kodi-remote-post "VideoLibrary.Scan" nil))
 
 (defun sbit-action (field-name obj)
   "Helper method for start buttons.

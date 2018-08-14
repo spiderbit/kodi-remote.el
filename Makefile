@@ -1,7 +1,7 @@
 all: test
 
 test-new:
-	emacs -batch -l ert -l tests/kodi-remote-tests-new.el -f ert-run-tests-batch-and-exit
+	LD_LIBRARY_PATH="" emacs -batch -l ert -l tests/kodi-remote-tests-new.el -f ert-run-tests-batch-and-exit
 
 test: prepare
 	HOME=$(PWD)/tests/HOME kodi &
