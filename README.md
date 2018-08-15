@@ -34,14 +34,8 @@ you need a running kodi instance of course!
 
 ## Using
 
-### open kodi media buffers, where you can navigate through your media files and play them.
-    M-x kodi-remote-movies
-    M-x kodi-remote-series
-    M-x kodi-remote-music
-    M-x kodi-remote-playlists
-
-### open kodi remote major mode, Control kodi like with a physical connected keyboard
-    M-x kodi-remote-keyboard RET
+### open kodi remote:
+    M-x kodi-remote
 
 ### starts playback of the youtube video
     M-x kodi-remote-play-video-url RET <paste youtube url> RET

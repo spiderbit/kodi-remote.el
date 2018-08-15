@@ -28,12 +28,7 @@
 ;; First specify the hostname/ip of your kodi webserver:
 ;; (setq kodi-host-name "my-htpc:8080")
 ;; Then open the Remote with the command:
-;; 'kodi-remote-keyboard'
-;; Alternativly open the Media buffers with the commands:
-;; 'kodi-remote-movies'
-;; 'kodi-remote-series'
-;; 'kodi-remote-music'
-;; 'kodi-remote-playlists'
+;; 'kodi-remote'
 ;; Also open the current kodi Video Playlist with the command:
 ;; 'kodi-remote-playlist'
 ;; OPTIONAL: setup settings for deleting files (over tramp)
@@ -189,7 +184,7 @@ Argument DIRECTION which direction and how big of step to seek."
 Argument RESUME continue playback where stopped before else start from beginning."
   (let* ((do-resume (if (and resume
 			     (< 0 (assoc-default 'position resume)))
-			(y-or-n-p "Do you wanna resume")))
+			(y-or-n-p "Do you wanna resume? ")))
 	 (params `(("item" . ((,field-name . ,id)))
 		   ("options" . (("resume" . ,(if do-resume t -1)))))))
     (kodi-remote-post "Player.Open" params)))
@@ -419,10 +414,11 @@ Optional argument SHOW-ID limits to a specific show."
 	 (sources (kodi-remote-get-sources source-type))
 	 (disk-free (seq-contains fields 'diskfree))
 	 (params (append (if id (list (append `(,id-name) id)))
-			 `(("properties" . ,(seq-into
-					     (if disk-free
-						 (seq-subseq fields 0 -2) fields)
-					     'vector)))
+			 `(("properties" .
+			    ,(seq-into
+			      (if disk-free
+				  (seq-subseq fields 0 -2) fields)
+			      'vector)))
 			 (if filter (list (append (list "filter") filter))))))
     (kodi-remote-get request-method params)
     (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
@@ -670,10 +666,11 @@ Argument ID kodi series database identifier."
   (request
    (kodi-json-url)
    :type "POST"
-   :data (json-encode `(("id" . 1)("jsonrpc" . "2.0")
-			("method" . "Player.GoTo")
-			("params" . (("playerid" . 0)
-				     ("to" . ,pos)))))
+   :data (json-encode
+	  `(("id" . 1)("jsonrpc" . "2.0")
+	    ("method" . "Player.GoTo")
+	    ("params" . (("playerid" . 0)
+			 ("to" . ,pos)))))
    :headers '(("Content-Type" . "application/json"))
    :parser 'json-read))
 
@@ -913,6 +910,11 @@ Argument OBJ the button obj."
   (kodi-remote-play-playlist-item
    (button-get obj 'id)))
 
+(defun sbit-action-start-modes (obj)
+  "Helper method for Main Menu start buttons.
+Argument OBJ the button obj."
+  (eval (list (button-get obj 'args))))
+
 (defun spiderbit-get-name (episode)
   "Return the name of a EPISODE."
   (decode-coding-string (cdr (assoc 'label episode)) 'utf-8) )
@@ -1134,14 +1136,32 @@ Optional argument _NOCONFIRM revert excepts this param."
   (kodi-remote-get-songs kodi-selected-artist)
   (kodi-draw-tab-list 'songid nil 'songid 'songs nil))
 
-(defun kodi-remote-draw-status (&optional _arg _noconfirm)
-  "Draw kodi status buffer.
+(defun kodi-remote-draw-main (&optional _arg _noconfirm)
+  "Draw the main Menu.
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (kodi-remote-get-artist-list)
-  (kodi-draw-tab-list 'kodi-remote-songs-wrapper t
-		      'artistid 'artists nil))
+  (let* ((menu-entries
+	  '(("Movies" . kodi-remote-movies)
+	    ("Series" . kodi-remote-series)
+	    ("Music" . kodi-remote-music)
+	    ("Playlists" . kodi-remote-playlists)
+	    ("Keyboard" . kodi-remote-keyboard))))
+    (setq tabulated-list-entries
+	  (mapcar
+	   (lambda (item)
+	     (let* ((title (car item))
+		    (id (position item menu-entries)))
+	       (list `id
+		     (vector
+		      `(,title
+			action sbit-action-start-modes
+			args ,(cdr item)
+			id ,id)))))
+	   menu-entries)))
+  ;; (print tabulated-list-entries)
+  (tabulated-list-init-header)
+  (tabulated-list-print))
 
 ;;;###autoload
 (defun kodi-remote-playlist-draw (&optional _arg _noconfirm)
@@ -1150,19 +1170,24 @@ Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (kodi-remote-playlist-get)
-  (let* ((items (cdr (assoc 'items kodi-properties)))
-  	 (id 0))
+  (let* ((items (cdr (assoc 'items kodi-properties))))
     (setq tabulated-list-entries
-	  (mapcar (lambda (item)
-	     (let* ((title (or ;;(cdr (assoc 'title item))
-			    (string-remove-suffix ".pls"
-						  (spiderbit-get-name item))
-			    "None"))
-		    (entry (list `,id (vector `(,title
-						action sbit-action-playlist
-						id ,id)))))
-	       (setq id (1+ id)) entry))
-		  items)))
+	  (mapcar
+	   (lambda (item)
+	     (let* ((id (position item items))
+		    (title
+		     (or ;;(cdr (assoc 'title item))
+		      (string-remove-suffix
+		       ".pls"
+		       (spiderbit-get-name item))
+		      "None")))
+	       (list `,id
+		     (vector
+		      `(,title
+			action sbit-action-playlist
+			id ,id)))))
+	   items)))
+  ;; (print tabulated-list-entries)
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -1265,11 +1290,13 @@ Key bindings:
 \\{kodi-remote-music-mode-map}"
   (setq-local revert-buffer-function #'kodi-remote-draw-music))
 
-(define-derived-mode kodi-remote-status-mode tabulated-list-mode "kodi-remote-status"
-  "Major Mode for kodi status.
+(define-derived-mode kodi-remote-mode tabulated-list-mode "kodi-remote"
+  "Major Mode for kodi remote.
 Key bindings:
-\\{kodi-remote-status-mode-map}"
-  (setq-local revert-buffer-function #'kodi-remote-draw-status))
+\\{kodi-remote-mode-map}"
+  (setq tabulated-list-format
+        `[("Choices" 30 t)])
+  (setq-local revert-buffer-function #'kodi-remote-draw-main))
 
 (define-derived-mode kodi-remote-playlist-mode tabulated-list-mode "kodi-remote-playlist"
   "Major Mode for kodi playlists.
@@ -1311,10 +1338,10 @@ Key bindings:
   (kodi-remote-context kodi-remote-music-mode))
 
 ;;;###autoload
-(defun kodi-remote-status ()
-  "Open a `kodi-remote-status-mode' buffer."
+(defun kodi-remote ()
+  "Open a `kodi-remote-mode' buffer."
   (interactive)()
-  (kodi-remote-context kodi-remote-status-mode))
+  (kodi-remote-context kodi-remote-mode))
 
 ;;;###autoload
 (defun kodi-remote-playlist ()
