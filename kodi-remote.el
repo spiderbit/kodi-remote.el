@@ -678,22 +678,8 @@ Argument ID kodi series database identifier."
 (defun kodi-remote-play-url (url)
   "Plays either direct links to video files or plugin play command URLs."
   (interactive "surl: ")
-  (let* ((default-directory "~")
-	 (json (json-encode `(("id" . 1)("jsonrpc" . "2.0")("method" . "Player.Open")
-			      ("params" . (("item" .  (("file" . ,url)))))))))
-    (request
-     (kodi-json-url)
-     :type "POST"
-     :data (json-encode '(("id" . 1)("jsonrpc" . "2.0")("method" . "Playlist.Clear")
-			  ("params" . (("playlistid" . 1)))))
-     :headers '(("Content-Type" . "application/json"))
-     :parser 'json-read)
-    (request
-     (kodi-json-url)
-     :type "POST"
-     :data json
-     :headers '(("Content-Type" . "application/json"))
-     :parser 'json-read)))
+  (kodi-remote-post "Playlist.Clear" '(("playlistid" . 1)))
+  (kodi-remote-post "Player.Open" `(("item" .  (("file" . ,url))))))
 
 ;FIXME: use quvi instead of youtube-dl
 ;;;###autoload
