@@ -40,6 +40,10 @@ you need a running kodi instance of course!
 ### starts playback of the youtube video
     M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
+### starts playback of the youtube video over the kodi-youtube plugin
+    M-x kodi-remote-play-stream-url RET <paste youtube url> RET
+	(advantage is that it works also with streamed videos)
+
 ### starts music playback in party mode
     M-x kodi-remote-play-music RET
 

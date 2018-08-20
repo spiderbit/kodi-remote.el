@@ -695,6 +695,18 @@ supports.  Argument VIDEO-URL A Url from a youtube video."
 	   (title (nth 0 (split-string response "\n"))))
       (kodi-remote-play-url url))))
 
+;;;###autoload
+(defun kodi-remote-play-stream-url (video-url)
+  "Convert url to a kodi youtube plugin url and sends that to kodi.
+Argument VIDEO-URL A Url from a youtube video."
+  (interactive "surl: ")
+  (let* ((video-id (nth 1 (s-split "?v=" video-url)))
+	 (stream-url
+	  (concat
+	   "plugin://plugin.video.youtube/play/?video_id="
+	   video-id)))
+    (kodi-remote-play-url stream-url)))
+
 ;FIXME: use quvi instead of youtube-dl
 ;;;###autoload
 (defun kodi-remote-append-video-url (video-url)
