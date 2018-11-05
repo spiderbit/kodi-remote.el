@@ -1,53 +1,48 @@
 # kodi-remote
 
-## Summary
-
 Emacs Remote Control for Kodi
-Including a function to send youtube and other urls to kodi
-* see youtube-dl for [supported sites](https://github.com/rg3/youtube-dl/blob/master/docs/supportedsites.md)
+![kodi-remote main menu](example.png)
 
 ## Requirements
+to use kodi-remote-play-video-url you must install youtube-dl
+* see youtube-dl for [supported sites](https://github.com/rg3/youtube-dl/blob/master/docs/supportedsites.md)
 
-to use the video website play feature you must install youtube-dl on your machine.
+to use kodi-remote-play-stream-url you need to have the youtube 
+plugin installed in kodi
 
-## Installing
+## Installation
+Available as the kodi-remote package on MELPA http://melpa.org/
 
-### clone kodi remote
-    cd ~/.emacs.d/
-    git clone <repo-url>
+Or:
+	M-x package-install-file RET /path/to/kodi-remote.el RET
 
-### add the path of kodi-remote and to your emacs init file:
-    (add-to-list 'load-path "~/.emacs.d/kodi-remote")
-    (require 'kodi-remote)
+## Setup
+
+### set the host name of the htpc instance:
     (setq kodi-host-name "my-htpc:8080")
 
-### set the network interface you connect over to kodi (optional only testet under linux)
+### OPTIONAL:
+	To use alternative playlist system (titles of youtube movies):
 	(setq kodi-network-interface "enp0s25")
-
-### OPTIONAL: setup settings for deleting files (over tramp)
+	For functionality that need direct write access to the filesystem:
 	(setq kodi-dangerous-options t)
 	(setq kodi-access-host "my-htpc")
 	if you don't use ssh to access your kodi server / nas:
 	(setq kodi-access-method "smb/ftp/adb...")
-
-you need a running kodi instance of course!
 
 ## Using
 
 ### open kodi remote:
     M-x kodi-remote
 
-### starts playback of the youtube video
+### starts playback of a youtube video
     M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
-### starts playback of the youtube video over the kodi-youtube plugin
+### starts playback of a youtube video over the kodi-youtube plugin
     M-x kodi-remote-play-stream-url RET <paste youtube url> RET
 	(advantage is that it works also with streamed videos)
 
-### starts music playback in party mode
-    M-x kodi-remote-play-music RET
-
-### opens the kodi video playlist
+### opens the kodi playlist
     M-x kodi-remote-playlist RET
 
 ## Contributing
