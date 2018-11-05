@@ -4,16 +4,17 @@ Emacs Remote Control for Kodi
 ![kodi-remote main menu](example.png)
 
 ## Requirements
-to use kodi-remote-play-video-url you must install youtube-dl
+for kodi-remote-play-video-url you need to install youtube-dl
 * see youtube-dl for [supported sites](https://github.com/rg3/youtube-dl/blob/master/docs/supportedsites.md)
 
-to use kodi-remote-play-stream-url you need to have the youtube 
+for kodi-remote-play-stream-url you need to have the youtube
 plugin installed in kodi
 
 ## Installation
 Available as the kodi-remote package on MELPA http://melpa.org/
 
-Or:
+Or manually:
+
 	M-x package-install-file RET /path/to/kodi-remote.el RET
 
 ## Setup
@@ -35,14 +36,14 @@ Or:
 ### open kodi remote:
     M-x kodi-remote
 
-### starts playback of a youtube video
+### start playback of a youtube video
     M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
-### starts playback of a youtube video over the kodi-youtube plugin
+### alternatively:
     M-x kodi-remote-play-stream-url RET <paste youtube url> RET
 	(advantage is that it works also with streamed videos)
 
-### opens the kodi playlist
+### open the kodi playlist
     M-x kodi-remote-playlist RET
 
 ## Contributing
