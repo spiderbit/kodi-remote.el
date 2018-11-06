@@ -22,6 +22,24 @@ Or manually:
 ### set the host name of the htpc instance:
     (setq kodi-host-name "my-htpc:8080")
 
+## Using
+open kodi remote:
+
+    M-x kodi-remote
+
+start playback of a youtube video
+
+    M-x kodi-remote-play-video-url RET <paste youtube url> RET
+
+alternatively:
+
+    M-x kodi-remote-play-stream-url RET <paste youtube url> RET
+	(advantage is that it works also with streamed videos)
+
+open the kodi playlist
+
+    M-x kodi-remote-playlist RET
+
 ### OPTIONAL:
 To use alternative playlist system (titles of youtube movies):
 
@@ -35,21 +53,6 @@ For functionality that need direct write access to the filesystem:
 if you don't use ssh to access your kodi server / nas:
 
     (setq kodi-access-method "smb/ftp/adb...")
-
-## Using
-
-### open kodi remote:
-    M-x kodi-remote
-
-### start playback of a youtube video
-    M-x kodi-remote-play-video-url RET <paste youtube url> RET
-
-### alternatively:
-    M-x kodi-remote-play-stream-url RET <paste youtube url> RET
-	(advantage is that it works also with streamed videos)
-
-### open the kodi playlist
-    M-x kodi-remote-playlist RET
 
 ## Contributing
 
