@@ -15,7 +15,7 @@ Available as the kodi-remote package on MELPA http://melpa.org/
 
 Or manually:
 
-	M-x package-install-file RET /path/to/kodi-remote.el RET
+    M-x package-install-file RET /path/to/kodi-remote.el RET
 
 ## Setup
 
@@ -23,13 +23,18 @@ Or manually:
     (setq kodi-host-name "my-htpc:8080")
 
 ### OPTIONAL:
-	To use alternative playlist system (titles of youtube movies):
-	(setq kodi-network-interface "enp0s25")
-	For functionality that need direct write access to the filesystem:
-	(setq kodi-dangerous-options t)
-	(setq kodi-access-host "my-htpc")
-	if you don't use ssh to access your kodi server / nas:
-	(setq kodi-access-method "smb/ftp/adb...")
+To use alternative playlist system (titles of youtube movies):
+
+    (setq kodi-network-interface "enp0s25")
+	
+For functionality that need direct write access to the filesystem:
+
+    (setq kodi-dangerous-options t)
+    (setq kodi-access-host "my-htpc")
+    
+if you don't use ssh to access your kodi server / nas:
+
+    (setq kodi-access-method "smb/ftp/adb...")
 
 ## Using
 
