@@ -453,14 +453,39 @@ Optional argument SHOW-ID limits to a specific show."
 				       (append kodi-path-df `((,base-path . ,size-part))))
 				 size-part)))
 			  (diskused
-			   (elt (split-string (eshell-command-result
-					       (format "du \"%s\" -hs"
-						       (substring file-name 1))))
-				0)))
+			   (if (equal (buffer-name) "*kodi-remote-series*")
+			       (format "%8.1fG" (/ (directory-size (substring file-name 1))
+						(expt 2 30)))
+			     (format "%8.1fM" (/ (file-size (substring file-name 1))
+					       (expt 2 20))))))
 		     ;; (kodi-remote-get-item-size file-name)
 		     (append elem `((diskfree . ,size))
 			     `((diskused . ,diskused)))))
 		 (assoc-default data-name kodi-properties)))))))
+
+(defun file-size (filename)
+  "Return size of file FILENAME in bytes.
+    The size is converted to float for consistency.
+    This doesn't recurse directories."
+  (float
+   (or (file-attribute-size			; might be int or float
+	(file-attributes filename))
+       0)))
+
+(defun directory-size (directory)
+  "Return size of directory DIRECTORY in bytes.
+    The size is converted to float for consistency.
+    This is includes 1 level of sub directories."
+  (apply '+ (mapcar
+	     (lambda
+	       (entry)
+	       (if (file-attribute-type (cdr entry))
+		   (directory-size (concat directory (car entry)))
+		 (float
+		  (file-attribute-size
+		   (cdr entry)))))
+	     (cddr (directory-files-and-attributes directory)))))
+
 
 ;;;###autoload
 (defun kodi-remote-playlist-add-item ()
@@ -978,8 +1003,8 @@ Argument ITEM the media data from kodi."
 		(remove-if
 		 (lambda (x)
 		   (memq x `(playcount type file label
-			     episode directory resume
-			     title ,id)))
+				       episode directory resume
+				       title ,id)))
 		 (kodi-remote-media-fields
 		  (pcase id
 		    ('songid 'song)('movieid 'movie)
@@ -1046,6 +1071,7 @@ Optional argument HIDE-EXT if t removes file extension from entry labels."
 					 'sbit-action action))
 		      id subitems hide-ext)
 		     (assoc-default data-name kodi-properties))))
+  (setq tabulated-list-sort-key nil)
   (tabulated-list-init-header)
   (tabulated-list-print))
 
@@ -1157,7 +1183,6 @@ Optional argument _NOCONFIRM revert excepts this param."
 			args ,(cdr item)
 			id ,id)))))
 	   menu-entries)))
-  ;; (print tabulated-list-entries)
   (tabulated-list-init-header)
   (tabulated-list-print))
 
