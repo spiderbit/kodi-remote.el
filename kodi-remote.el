@@ -424,46 +424,51 @@ Optional argument SHOW-ID limits to a specific show."
     (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
 	(kodi-remote-append-disk-free data-field category sources))))
 
+
+(defun kodi-remote-build-disk-strings (element)
+  "Create Disk Information of ELEMENT"
+  (let* ((default-directory
+	   (concat "/" kodi-access-method
+		   ":" kodi-access-host ":/"))
+	 (file-name (assoc-default 'file element))
+	 (base-path (cdaar (seq-filter
+			    (lambda (elt)
+			      (file-in-directory-p
+			       file-name
+			       (assoc-default 'file elt)))
+			    sources)))
+	 (size (or (assoc-default base-path kodi-path-df)
+		   (let* ((size-line
+			   (eshell-command-result
+			    (format "df \"%s\" -h --output=avail"
+				    (substring base-path 1))))
+			  (size-part (elt (split-string size-line) 1)))
+		     (setq kodi-path-df
+			   (append kodi-path-df
+				   `((,base-path . ,size-part))))
+		     size-part)))
+	 (diskused (let ((form-args
+			  (if (equal (buffer-name) "*kodi-remote-series*")
+			      (list "%8.1fG" 'kodi-directory-size 30)
+			    (list "%8.1fM" 'kodi-file-size 20))))
+		     (format (pop form-args)
+			     (/ (funcall (pop form-args)
+					 (substring file-name 1))
+				(expt 2 (pop form-args)))))))
+    ;; (kodi-remote-get-item-size file-name)
+    (append element `((diskfree . ,size))
+	    `((diskused . ,diskused)))))
+
 (defun kodi-remote-append-disk-free (data-name category sources)
   "Helper Function to get free space of items."
   (let ((kodi-path-df '()))
     (setq kodi-properties
 	  `((,data-name
 	     . ,(mapcar
-		 (lambda (elem)
-		   (let* ((default-directory
-			    (concat "/" kodi-access-method
-				    ":" kodi-access-host ":/"))
-			  (file-name (assoc-default 'file elem))
-			  (base-path
-			   (cdaar
-			    (seq-filter (lambda (elt)
-					  (file-in-directory-p
-					   file-name
-					   (assoc-default 'file elt)))
-					sources)))
-			  (size
-			   (or (assoc-default base-path kodi-path-df)
-			       (let*
-				   ((size-line (eshell-command-result
-						(format "df \"%s\" -h --output=avail"
-							(substring base-path 1))))
-				    (size-part (elt (split-string size-line) 1)))
-				 (setq kodi-path-df
-				       (append kodi-path-df `((,base-path . ,size-part))))
-				 size-part)))
-			  (diskused
-			   (if (equal (buffer-name) "*kodi-remote-series*")
-			       (format "%8.1fG" (/ (directory-size (substring file-name 1))
-						(expt 2 30)))
-			     (format "%8.1fM" (/ (file-size (substring file-name 1))
-					       (expt 2 20))))))
-		     ;; (kodi-remote-get-item-size file-name)
-		     (append elem `((diskfree . ,size))
-			     `((diskused . ,diskused)))))
+		 'kodi-remote-build-disk-strings
 		 (assoc-default data-name kodi-properties)))))))
 
-(defun file-size (filename)
+(defun kodi-file-size (filename)
   "Return size of file FILENAME in bytes.
     The size is converted to float for consistency.
     This doesn't recurse directories."
@@ -472,7 +477,7 @@ Optional argument SHOW-ID limits to a specific show."
 	(file-attributes filename))
        0)))
 
-(defun directory-size (directory)
+(defun kodi-directory-size (directory)
   "Return size of directory DIRECTORY in bytes.
     The size is converted to float for consistency.
     This is includes 1 level of sub directories."
