@@ -354,22 +354,16 @@ Depending on current window move horizontal in menu (INPUT)
 (defun kodi-remote-get-songs (&optional id)
   "Poll list of songs.
 Optional argument ID limits to a specific artist."
-  (let* ((filter-watched (kodi-remote-visibility-filter))
-	 (artist-filter (if id `(("operator" . "is")
-				 ("field" . "artist")
-				 ("value" . ,id))))
-	 (filter
-	  (if (or filter-watched artist-filter)
-	      (list (append '("and")
-			    (remove nil
-				    (list artist-filter
-					  (if filter-watched
-					      filter-watched)))))))
-	 (params (append `(("properties" .
-			   ,(seq-into (kodi-remote-media-fields 'song) 'vector)))
-			 (if filter (list
-				     (append (list "filter") filter))))))
-    (kodi-remote-get "AudioLibrary.GetSongs" params)))
+  (macrolet ((lcons (a b) `(unless (null ,b) (list (cons ,a ,b)))))
+    (let* ((filter-watched (kodi-remote-visibility-filter))
+	   (artist-filter (when id `(("operator" . "is")
+				     ("field" . "artist")
+				     ("value" . ,id))))
+	   (filters (remove 'nil `(,artist-filter ,filter-watched)))
+	   (filter-string (lcons "filter" (lcons "and" filters)))
+	   (properties (seq-into (kodi-remote-media-fields 'song) 'vector))
+	   (params (cons `("properties" . ,properties) filter-string)))
+      (kodi-remote-get "AudioLibrary.GetSongs" params))))
 
 (defun kodi-remote-get-item-size (file)
   "Poll item Size.
