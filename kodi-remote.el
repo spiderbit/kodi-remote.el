@@ -99,7 +99,7 @@ Argument PARAMS kodi json api argument."
 	 (request-data (append `(("id" . 0)
 				 ("jsonrpc" . "2.0")
 				 ("method" . ,method))
-			       (if params
+			       (when params
 				   `(("params" . ,params))))))
     ;; (print request-data)
     (request
@@ -182,9 +182,9 @@ Argument DIRECTION which direction and how big of step to seek."
 (defun kodi-remote-play-database-id (field-name id resume)
   "Play kodi item with the id type in FIELD-NAME and the given ID.
 Argument RESUME continue playback where stopped before else start from beginning."
-  (let* ((do-resume (if (and resume
-			     (< 0 (assoc-default 'position resume)))
-			(y-or-n-p "Do you wanna resume? ")))
+  (let* ((do-resume (when (and resume
+			       (< 0 (assoc-default 'position resume)))
+		      (y-or-n-p "Do you wanna resume? ")))
 	 (params `(("item" . ((,field-name . ,id)))
 		   ("options" . (("resume" . ,(if do-resume t -1)))))))
     (kodi-remote-post "Player.Open" params)))
@@ -424,7 +424,6 @@ Optional argument SHOW-ID limits to a specific show."
     (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
 	(kodi-remote-append-disk-free data-field category sources))))
 
-
 (defun kodi-remote-build-disk-strings (element)
   "Create Disk Information of ELEMENT"
   (let* ((default-directory
@@ -438,24 +437,22 @@ Optional argument SHOW-ID limits to a specific show."
 			       (assoc-default 'file elt)))
 			    sources)))
 	 (size (or (assoc-default base-path kodi-path-df)
-		   (let* ((size-line
-			   (eshell-command-result
-			    (format "df \"%s\" -h --output=avail"
-				    (substring base-path 1))))
-			  (size-part (elt (split-string size-line) 1)))
-		     (setq kodi-path-df
-			   (append kodi-path-df
-				   `((,base-path . ,size-part))))
-		     size-part)))
-	 (diskused (let ((form-args
-			  (if (equal (buffer-name) "*kodi-remote-series*")
-			      (list "%8.1fG" 'kodi-directory-size 30)
-			    (list "%8.1fM" 'kodi-file-size 20))))
-		     (format (pop form-args)
-			     (/ (funcall (pop form-args)
-					 (substring file-name 1))
-				(expt 2 (pop form-args)))))))
+		   (elt (split-string
+			 (eshell-command-result
+		    (format "df \"%s\" -h --output=avail"
+			    (substring base-path 1))))
+			1)))
+	 (form-args (if (equal (buffer-name) "*kodi-remote-series*")
+			(list "%8.1fG" 'kodi-directory-size 30)
+		      (list "%8.1fM" 'kodi-file-size 20)))
+	 (diskused (format (pop form-args)
+			   (/ (funcall (pop form-args)
+				       (substring file-name 1))
+			      (expt 2 (pop form-args))))))
     ;; (kodi-remote-get-item-size file-name)
+    (setq kodi-path-df
+	  (append kodi-path-df
+		  `((,base-path . ,size))))
     (append element `((diskfree . ,size))
 	    `((diskused . ,diskused)))))
 
@@ -524,44 +521,42 @@ Optional argument SHOW-ID limits to a specific show."
 (defun kodi-remote-playlist-save (name)
   "Save playlist as NAME."
   (interactive "sName:")
-  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
-      (progn
-	(kodi-remote-playlist-get)
-	(let* ((default-directory
-		 (concat "/" kodi-access-method
-			 ":" kodi-access-host ":/"))
-	       (file-name (concat (seq-drop (kodi-profile-path) 0)
-				  "/userdata/playlists/video/"
-				  name ".m3u"))
-	       (items (cdr (assoc 'items kodi-properties)))
-	       (entries (mapconcat
-			 (lambda (item)
-			   (format "#EXTINF:0,%s\n%s"
-				   (assoc-default 'label item)
-				   (assoc-default 'file item))
-			   ) items "\n")))
-	  (if (file-writable-p file-name)
-	      (write-region (concat "#EXTM3U\n" entries) nil file-name))))))
+  (when (and kodi-dangerous-options (boundp 'kodi-access-host))
+    (kodi-remote-playlist-get)
+    (let* ((default-directory
+	     (concat "/" kodi-access-method
+		     ":" kodi-access-host ":/"))
+	   (file-name (concat (seq-drop (kodi-profile-path) 0)
+			      "/userdata/playlists/video/"
+			      name ".m3u"))
+	   (items (cdr (assoc 'items kodi-properties)))
+	   (entries (mapconcat
+		     (lambda (item)
+		       (format "#EXTINF:0,%s\n%s"
+			       (assoc-default 'label item)
+			       (assoc-default 'file item))
+		       ) items "\n")))
+      (if (file-writable-p file-name)
+	  (write-region (concat "#EXTM3U\n" entries) nil file-name)))))
 
 
 ;;;###autoload
 (defun kodi-remote-playlists-remove ()
   "Remove playlist."
   (interactive)
-  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
-      (progn
-	(let* ((default-directory
-		 (concat "/" kodi-access-method
-			 ":" kodi-access-host ":/"))
-	       (file-name (seq-drop (tabulated-list-get-id) 1)))
-	  (if (file-writable-p file-name)
-	      (delete-file file-name))))))
+  (when (and kodi-dangerous-options (boundp 'kodi-access-host))
+    (let* ((default-directory
+	     (concat "/" kodi-access-method
+		     ":" kodi-access-host ":/"))
+	   (file-name (seq-drop (tabulated-list-get-id) 1)))
+      (if (file-writable-p file-name)
+	  (delete-file file-name)))))
 
 ;;;###autoload
 (defun kodi-remote-playlists-rename (name)
   "Rename playlist to new NAME."
   (interactive "sName:")
-  (if (and kodi-dangerous-options (boundp 'kodi-access-host))
+  (when (and kodi-dangerous-options (boundp 'kodi-access-host))
       (let* ((default-directory
 	       (concat "/" kodi-access-method
 		       ":" kodi-access-host ":/"))
@@ -638,7 +633,7 @@ Argument DIRECTION can be up or down."
 
 (defun kodi-remote-playlists-get ()
   "Requests playlist items."
-  (if (and kodi-dangerous-options
+  (when (and kodi-dangerous-options
 	   (boundp 'kodi-access-host))
       (let* ((params `(("directory" .
 			,(concat (kodi-profile-path)
@@ -711,20 +706,6 @@ Argument ID kodi series database identifier."
   (kodi-remote-post "Playlist.Clear" '(("playlistid" . 1)))
   (kodi-remote-post "Player.Open" `(("item" .  (("file" . ,url))))))
 
-;FIXME: use quvi instead of youtube-dl
-;;;###autoload
-(defun kodi-remote-play-video-url (video-url)
-  "Sends urls from videos like youtube to kodi.
-Could be used for other sites, too.  whatever youtube-dl
-supports.  Argument VIDEO-URL A Url from a youtube video."
-  (interactive "surl: ")
-  (let* ((response
-	 (shell-command-to-string
-	  (concat "youtube-dl --no-warnings -f best -g -e " video-url))))
-    (let* ((url (nth 1 (split-string response "\n")))
-	   (title (nth 0 (split-string response "\n"))))
-      (kodi-remote-play-url url))))
-
 ;;;###autoload
 (defun kodi-remote-play-stream-url (video-url)
   "Convert url to a kodi youtube plugin url and sends that to kodi.
@@ -737,83 +718,99 @@ Argument VIDEO-URL A Url from a youtube video."
 	   video-id)))
     (kodi-remote-play-url stream-url)))
 
-;FIXME: use quvi instead of youtube-dl
+(defun kodi-remote-youtube-operation (func)
+  "Wrapper function for youtube-dl.
+Extracts url / title from video-url and starts FUNC"
+  (let* ((response
+	  (shell-command-to-string
+	   (concat "youtube-dl --no-warnings -f best -g -e "
+		   video-url)))
+	 (url (nth 1 (split-string response "\n")))
+	 (title (nth 0 (split-string response "\n"))))
+    (funcall func)))
+
 ;;;###autoload
 (defun kodi-remote-append-video-url (video-url)
   "Append urls from videos like youtube to kodi playlists.
 Could be used for other sites, too.  whatever youtube-dl
 supports.  Argument VIDEO-URL A Url from a youtube video."
   (interactive "surl: ")
-  (let* ((response
-	 (shell-command-to-string
-	  (concat "youtube-dl -f best -g -e " video-url))))
-    (let* ((url (nth 1 (split-string response "\n")))
-	   (title (nth 0 (split-string response "\n"))))
-      (if kodi-network-interface
-	  (kodi-remote-playlist-add-url-pls url title)
-	(kodi-remote-playlist-add-url url)))))
+  (kodi-remote-youtube-operation
+   (lambda () (if kodi-network-interface
+		  ;; (kodi-remote-playlist-add-url-pls url title)
+		  (kodi-remote-playlist-add-url url)
+		(kodi-remote-playlist-add-url url)))))
+
+;;;###autoload
+(defun kodi-remote-play-video-url (video-url)
+  "Sends urls from videos like youtube to kodi.
+Could be used for other sites, too.  whatever youtube-dl
+supports.  Argument VIDEO-URL A Url from a youtube video."
+  (interactive "surl: ")
+  (kodi-remote-youtube-operation
+   (lambda () (kodi-remote-play-url url))))
+
+; elnode seems broken in newer emacs versions
+
+;; (defun kodi-setup-elnode ()
+;;   "Start elnode deamon and set up everything if not done already."
+;;   ;; (print (elnode-ports))
+;;   (when (not (member 8028 (elnode-ports)))
+;;     (setq kodi-elnode-directory (make-temp-file "kodi-" t))
+;;     (setq elnode-send-file-program "cat")
+;;     (defconst kodi-elnode-handler
+;;       (elnode-webserver-handler-maker kodi-elnode-directory))
+;;     (elnode-start kodi-elnode-handler :port 8038 :host "*")))
+
+;; (defun kodi-remote-playlist-add-url-pls (url &optional label)
+;;   "Add item/video to playlist.
+;; Argument URL the video url.
+;; Optional argument LABEL a custom label for the file."
+;;   ;; (interactive "sUrl: ")
+;;   (kodi-setup-elnode)
+;;   (with-temp-file (expand-file-name
+;; 		   (format  "%s.pls" label) kodi-elnode-directory)
+;;     (insert (string-join `("[playlist]"
+;; 			   ,(concat "File1=" url "")
+;; 			   ,(concat "Title1=" label "")
+;; 			   "NumberOfEntries=1\n"
+;; 			   ) "\n")))
+;;   (let* ((stream-url (format "http://%s:8028/%s.pls"
+;; 			     (kodi-client-ip) label))
+;;   	 (params `(("playlistid" . 1)
+;; 		   ("item" . (("file" . ,stream-url))))))
+;;     (kodi-remote-post "Playlist.Add" params))
+;;   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
+;;   ;; 			 ":8028/"))
+;;   ;; 	   (params `(("params" . (("directory" . ,url2))))))
+;;   ;;   (kodi-remote-post "VideoLibrary.Scan" params))
+;;   )
 
 
-(defun kodi-setup-elnode ()
-  "Start elnode deamon and set up everything if not done already."
-  ;; (print (elnode-ports))
-  (if (not (member 8028 (elnode-ports)))
-      (progn
-	(setq kodi-elnode-directory (make-temp-file "kodi-" t))
-	(setq elnode-send-file-program "cat")
-	(defconst kodi-elnode-handler
-	  (elnode-webserver-handler-maker kodi-elnode-directory))
-	(elnode-start kodi-elnode-handler :port 8028 :host "*"))))
-
-(defun kodi-remote-playlist-add-url-pls (url &optional label)
-  "Add item/video to playlist.
-Argument URL the video url.
-Optional argument LABEL a custom label for the file."
-  ;; (interactive "sUrl: ")
-  (kodi-setup-elnode)
-  (with-temp-file (expand-file-name
-		   (format  "%s.pls" label) kodi-elnode-directory)
-    (insert (string-join `("[playlist]"
-			   ,(concat "File1=" url "")
-			   ,(concat "Title1=" label "")
-			   "NumberOfEntries=1\n"
-			   ) "\n")))
-  (let* ((stream-url (format "http://%s:8028/%s.pls"
-			     (kodi-client-ip) label))
-  	 (params `(("playlistid" . 1)
-		   ("item" . (("file" . ,stream-url))))))
-    (kodi-remote-post "Playlist.Add" params))
-  ;; (let* ((url2 (concat "http://" kodi-remote-local-host
-  ;; 			 ":8028/"))
-  ;; 	   (params `(("params" . (("directory" . ,url2))))))
-  ;;   (kodi-remote-post "VideoLibrary.Scan" params))
-  )
-
-
-(defun kodi-remote-playlist-add-url-strm (url &optional label)
-  "Add item/video to playlist.
-Argument URL the url to the media.
-Optional argument LABEL cutom name of the entry."
-  ;; (interactive "sUrl: ")
-  (kodi-setup-elnode)
-  ;; (print kodi-elnode-directory)
-  (with-temp-file (expand-file-name
-		   (format "%s.strm" label)
-		   kodi-elnode-directory)
-    (insert url))
-  ;; (with-temp-file (expand-file-name
-  ;; 		       "youtube-video.nfo" full-dir)
-  ;; 	(insert (format "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n<movie>\n<title>%s</title>\n</movie>" label)))
-  (let* ((stream-url (format "http://%s:8028/%s.strm"
-			     kodi-remote-local-host label))
-	 (params `(("playlistid" . 1)
-		   ("item" . (("file" . ,stream-url))))))
-    (kodi-remote-post "Playlist.Add" params))
-  ;; (let* ((url2 (concat "http://" kodi-remote-local-host
-  ;; 			 ":8028/youtube-titel-321/"))
-  ;; 	   (params `(("params" . (("directory" . ,url2))))))
-  ;;   (kodi-remote-post "VideoLibrary.Scan" params))
-)
+;; (defun kodi-remote-playlist-add-url-strm (url &optional label)
+;;   "Add item/video to playlist.
+;; Argument URL the url to the media.
+;; Optional argument LABEL cutom name of the entry."
+;;   ;; (interactive "sUrl: ")
+;;   (kodi-setup-elnode)
+;;   ;; (print kodi-elnode-directory)
+;;   (with-temp-file (expand-file-name
+;; 		   (format "%s.strm" label)
+;; 		   kodi-elnode-directory)
+;;     (insert url))
+;;   ;; (with-temp-file (expand-file-name
+;;   ;; 		       "youtube-video.nfo" full-dir)
+;;   ;; 	(insert (format "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n<movie>\n<title>%s</title>\n</movie>" label)))
+;;   (let* ((stream-url (format "http://%s:8028/%s.strm"
+;; 			     kodi-remote-local-host label))
+;; 	 (params `(("playlistid" . 1)
+;; 		   ("item" . (("file" . ,stream-url))))))
+;;     (kodi-remote-post "Playlist.Add" params))
+;;   ;; (let* ((url2 (concat "http://" kodi-remote-local-host
+;;   ;; 			 ":8028/youtube-titel-321/"))
+;;   ;; 	   (params `(("params" . (("directory" . ,url2))))))
+;;   ;;   (kodi-remote-post "VideoLibrary.Scan" params))
+;; )
 
 
 (defvar kodi-remote-keyboard-mode-map
@@ -889,25 +886,24 @@ Key bindings:
 For it to work ‘kodi-dangerous-options’ must be set to t
 and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
   (let* ((default-directory "~"))
-    (if (and kodi-dangerous-options (boundp 'kodi-access-host))
-	(progn
-	  (let* ((params `(("episodeid" . ,id)
-			   ("properties" . ("file")))))
-	    (kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
-	  (let* ((default-directory
-		   (concat "/" kodi-access-method
-			   ":" kodi-access-host ":/"))
-		 (file-name
-		  (substring
-		   (decode-coding-string
-		    (let-alist
-			kodi-properties .episodedetails.file)
-		    'utf-8)
-		   1)))
-	    (if (file-writable-p file-name )
-		(delete-file file-name)))
-	  (let* ((params `(("episodeid" . ,id ))))
-	    (kodi-remote-post "VideoLibrary.RemoveEpisode" params))))))
+    (when (and kodi-dangerous-options (boundp 'kodi-access-host))
+      (let* ((params `(("episodeid" . ,id)
+		       ("properties" . ("file")))))
+	(kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
+      (let* ((default-directory
+	       (concat "/" kodi-access-method
+		       ":" kodi-access-host ":/"))
+	     (file-name
+	      (substring
+	       (decode-coding-string
+		(let-alist
+		    kodi-properties .episodedetails.file)
+		'utf-8)
+	       1)))
+	(if (file-writable-p file-name )
+	    (delete-file file-name)))
+      (let* ((params `(("episodeid" . ,id ))))
+	(kodi-remote-post "VideoLibrary.RemoveEpisode" params)))))
 
 (defun kodi-remote-series-clean ()
   "Cleans video library."
@@ -999,7 +995,7 @@ Argument SUBITEMS sets entry as category/tag with child entries.
 Argument HIDE-EXT if t removes file extension from entry label
 Argument ITEM the media data from kodi."
   (let* ((number-of-nodes
-	  (if subitems
+	  (when subitems
 	      (kodi-show-get-number-of-episodes
 	       item)))
 	 (subitemid (assoc-default id item))
@@ -1361,14 +1357,14 @@ Key bindings:
 ;;;###autoload
 (defun kodi-remote-music ()
   "Open a `kodi-remote-music-mode' buffer."
-  (interactive)()
+  (interactive)
   (setq kodi-selected-artist nil)
   (kodi-remote-context kodi-remote-music-mode))
 
 ;;;###autoload
 (defun kodi-remote ()
   "Open a `kodi-remote-mode' buffer."
-  (interactive)()
+  (interactive)
   (kodi-remote-context kodi-remote-mode))
 
 ;;;###autoload
