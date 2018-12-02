@@ -399,24 +399,25 @@ Optional argument SHOW-ID limits to a specific show."
   (kodi-remote-get-item 'episode "VideoLibrary.GetEpisodes" nil
 			'episodes "video" "tvshowid" show-id))
 
-(defun kodi-remote-get-item (entry-name request-method category
-					&optional data-field source-type id-name id)
+(defun kodi-remote-get-item (entry-name request-method category &optional
+					data-field source-type id-name id)
   "Poll unwatches episodes from show.
 Optional argument SHOW-ID limits to a specific show."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (fields (kodi-remote-media-fields entry-name))
 	 (sources (kodi-remote-get-sources source-type))
 	 (disk-free (seq-contains fields 'diskfree))
-	 (params (append (if id (list (append `(,id-name) id)))
+	 (params (append (when id (list (append `(,id-name) id)))
 			 `(("properties" .
-			    ,(seq-into
-			      (if disk-free
-				  (seq-subseq fields 0 -2) fields)
-			      'vector)))
-			 (if filter (list (append (list "filter") filter))))))
+			    ,(seq-into (if disk-free
+					   (seq-subseq fields 0 -2) fields)
+				       'vector)))
+			 (when filter (list (append (list "filter")
+						    filter))))))
     (kodi-remote-get request-method params)
-    (if (and kodi-show-df disk-free kodi-dangerous-options (boundp 'kodi-access-host))
-	(kodi-remote-append-disk-free data-field category sources))))
+    (when (and kodi-show-df disk-free kodi-dangerous-options
+	       (boundp 'kodi-access-host))
+      (kodi-remote-append-disk-free data-field category sources))))
 
 (defun kodi-remote-build-disk-strings (element)
   "Create Disk Information of ELEMENT"
