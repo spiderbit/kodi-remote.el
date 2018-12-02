@@ -390,7 +390,7 @@ Argument TYPE video or audio."
   (kodi-remote-get-item 'movie "VideoLibrary.GetMovies" nil 'movies "video"))
 
 (defun kodi-remote-get-show-list ()
-  "Poll shows."
+  "Poll show list."
   (kodi-remote-get-item 'tvshow "VideoLibrary.GetTVShows" t 'tvshows "video"))
 
 (defun kodi-remote-get-series-episodes (&optional show-id)
@@ -420,7 +420,7 @@ Optional argument SHOW-ID limits to a specific show."
       (kodi-remote-append-disk-free data-field category sources))))
 
 (defun kodi-remote-build-disk-strings (element)
-  "Create Disk Information of ELEMENT"
+  "Create Disk Information of ELEMENT."
   (let* ((default-directory
 	   (concat "/" kodi-access-method
 		   ":" kodi-access-host ":/"))
