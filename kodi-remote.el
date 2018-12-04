@@ -430,12 +430,11 @@ Optional argument SHOW-ID limits to a specific show."
 	   (concat "/" kodi-access-method
 		   ":" kodi-access-host ":/"))
 	 (file-name (assoc-default 'file element))
-	 (base-path (cdaar (seq-filter
-			    (lambda (elt)
-			      (file-in-directory-p
-			       file-name
-			       (assoc-default 'file elt)))
-			    sources)))
+	 (base-path
+	  (cdaar (seq-filter
+		  (lambda (elt) (file-in-directory-p
+				 file-name (assoc-default 'file elt)))
+		  sources)))
 	 (size (or (assoc-default base-path kodi-path-df)
 		   (elt (split-string
 			 (eshell-command-result
@@ -447,20 +446,16 @@ Optional argument SHOW-ID limits to a specific show."
 			      `("%8.1fG" kodi-directory-size ,file-name 30)
 			    `("%8.1fM" kodi-file-size ,file-name 20)))))
     ;; (kodi-remote-get-item-size file-name)
-    (setq kodi-path-df
-	  (append kodi-path-df
-		  `((,base-path . ,size))))
-    (append element `((diskfree . ,size))
-	    `((diskused . ,diskused)))))
+    (setq kodi-path-df (append kodi-path-df `((,base-path . ,size))))
+    (append element `((diskfree . ,size)) `((diskused . ,diskused)))))
 
 (defun kodi-remote-append-disk-free (data-name category sources)
   "Helper Function to get free space of items."
   (let ((kodi-path-df '()))
     (setq kodi-properties
-	  `((,data-name
-	     . ,(mapcar
-		 'kodi-remote-build-disk-strings
-		 (assoc-default data-name kodi-properties)))))))
+	  `((,data-name . ,(mapcar
+			    'kodi-remote-build-disk-strings
+			    (assoc-default data-name kodi-properties)))))))
 
 (defun kodi-file-size (filename)
   "Return size of file FILENAME in bytes.
