@@ -419,6 +419,11 @@ Optional argument SHOW-ID limits to a specific show."
 	       (boundp 'kodi-access-host))
       (kodi-remote-append-disk-free data-field category sources))))
 
+(defun kodi-remote-disk-free (form-string func name dividor)
+  "Helper function to get free space string of item."
+  (format form-string (/ (funcall func (substring name 1))
+			   (expt 2 dividor))))
+
 (defun kodi-remote-build-disk-strings (element)
   "Create Disk Information of ELEMENT."
   (let* ((default-directory
@@ -437,13 +442,10 @@ Optional argument SHOW-ID limits to a specific show."
 		    (format "df \"%s\" -h --output=avail"
 			    (substring base-path 1))))
 			1)))
-	 (form-args (if (equal (buffer-name) "*kodi-remote-series*")
-			(list "%8.1fG" 'kodi-directory-size 30)
-		      (list "%8.1fM" 'kodi-file-size 20)))
-	 (diskused (format (pop form-args)
-			   (/ (funcall (pop form-args)
-				       (substring file-name 1))
-			      (expt 2 (pop form-args))))))
+	 (diskused (apply 'kodi-remote-disk-free
+			  (if (equal (buffer-name) "*kodi-remote-series*")
+			      `("%8.1fG" kodi-directory-size ,file-name 30)
+			    `("%8.1fM" kodi-file-size ,file-name 20)))))
     ;; (kodi-remote-get-item-size file-name)
     (setq kodi-path-df
 	  (append kodi-path-df
@@ -477,7 +479,7 @@ Optional argument SHOW-ID limits to a specific show."
 	     (lambda
 	       (entry)
 	       (if (file-attribute-type (cdr entry))
-		   (directory-size (concat directory (car entry)))
+		   (kodi-directory-size (concat directory (car entry)))
 		 (float
 		  (file-attribute-size
 		   (cdr entry)))))
