@@ -91,6 +91,10 @@
   "Function to create the full json-url of the kodi-instance."
   (concat "http://" kodi-host-name "/jsonrpc"))
 
+(defun kodi-remote-directory ()
+  "Builds remote base path"
+  (concat "/" kodi-access-method ":" kodi-access-host ":/"))
+
 (defun kodi-remote-post (method params)
   "Function to send post requests to the kodi instance.
 Argument METHOD kodi json api argument.
@@ -426,9 +430,7 @@ Optional argument SHOW-ID limits to a specific show."
 
 (defun kodi-remote-build-disk-strings (element)
   "Create Disk Information of ELEMENT."
-  (let* ((default-directory
-	   (concat "/" kodi-access-method
-		   ":" kodi-access-host ":/"))
+  (let* ((default-directory (kodi-remote-directory))
 	 (file-name (assoc-default 'file element))
 	 (base-path
 	  (cdaar (seq-filter
@@ -515,9 +517,7 @@ Optional argument SHOW-ID limits to a specific show."
   (interactive "sName:")
   (when (and kodi-dangerous-options (boundp 'kodi-access-host))
     (kodi-remote-playlist-get)
-    (let* ((default-directory
-	     (concat "/" kodi-access-method
-		     ":" kodi-access-host ":/"))
+    (let* ((default-directory (kodi-remote-directory))
 	   (file-name (concat (seq-drop (kodi-profile-path) 0)
 			      "/userdata/playlists/video/"
 			      name ".m3u"))
@@ -537,9 +537,7 @@ Optional argument SHOW-ID limits to a specific show."
   "Remove playlist."
   (interactive)
   (when (and kodi-dangerous-options (boundp 'kodi-access-host))
-    (let* ((default-directory
-	     (concat "/" kodi-access-method
-		     ":" kodi-access-host ":/"))
+    (let* ((default-directory (kodi-remote-directory))
 	   (file-name (seq-drop (tabulated-list-get-id) 1)))
       (if (file-writable-p file-name)
 	  (delete-file file-name)))))
@@ -549,9 +547,7 @@ Optional argument SHOW-ID limits to a specific show."
   "Rename playlist to new NAME."
   (interactive "sName:")
   (when (and kodi-dangerous-options (boundp 'kodi-access-host))
-      (let* ((default-directory
-	       (concat "/" kodi-access-method
-		       ":" kodi-access-host ":/"))
+      (let* ((default-directory (kodi-remote-directory))
 	     (file-name (seq-drop (tabulated-list-get-id) 1))
 	     (file-name-new (concat (seq-drop (kodi-profile-path) 1)
 				    "/userdata/playlists/video/"
@@ -882,9 +878,7 @@ and ‘kodi-access-host’ must be set to the hostname of your kodi-file host."
       (let* ((params `(("episodeid" . ,id)
 		       ("properties" . ("file")))))
 	(kodi-remote-get "VideoLibrary.GetEpisodeDetails" params))
-      (let* ((default-directory
-	       (concat "/" kodi-access-method
-		       ":" kodi-access-host ":/"))
+      (let* ((default-directory (kodi-remote-directory))
 	     (file-name
 	      (substring
 	       (decode-coding-string
