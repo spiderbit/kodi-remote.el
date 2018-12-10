@@ -88,13 +88,10 @@
 
 (defun kodi-client-ip ()
   "Function to create the local client ip address."
-  (let* ((ip-vector
-	  (seq-take
-	   (assoc-default
-	    kodi-network-interface
-	    (network-interface-list))
-	   4)))
-    (mapconcat #'number-to-string ip-vector ".")))
+  (format-network-address
+   (assoc-default
+    kodi-network-interface
+    (network-interface-list)) t))
 
 (defun kodi-json-url ()
   "Function to create the full json-url of the kodi-instance."
