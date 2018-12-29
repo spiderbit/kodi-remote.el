@@ -68,7 +68,9 @@
 (defvar kodi-volume nil)
 (defvar kodi-properties nil)
 (defvar kodi-request-running nil)
-(defvar kodi-watch-filter "unseen")
+(defvar kodi-watch-filter '((movie . "unseen")
+			    (series . "unseen")
+			    (music . "all")))
 (defvar kodi-selected-show nil)
 (defvar-local kodi-remote-refresh-function nil
   "The name of the function used to redraw a buffer.")
@@ -94,6 +96,10 @@
 (defun kodi-remote-directory ()
   "Builds remote base path"
   (concat "/" kodi-access-method ":" kodi-access-host ":/"))
+
+(defun kodi-get-watch-filter ()
+  "docstring"
+  (alist-get (kodi-get-filter-type) kodi-watch-filter))
 
 (defun kodi-remote-post (method params)
   "Function to send post requests to the kodi instance.
@@ -335,13 +341,14 @@ Depending on current window move horizontal in menu (INPUT)
 
 (defun kodi-remote-visibility-filter ()
   "Create filter json string for media request."
-  (unless (equal "all" kodi-watch-filter)
-    `(("field" . "playcount")
-      ("operator" .
-       ,(pcase kodi-watch-filter
-	  ("seen" "greaterthan")
-	  ("unseen" "is")))
-      ("value" . "0" ))))
+  (let* ((filter (kodi-get-watch-filter)))
+    (unless (equal "all" filter)
+      `(("field" . "playcount")
+	("operator" .
+	 ,(pcase filter
+	    ("seen" "greaterthan")
+	    ("unseen" "is")))
+	("value" . "0" )))))
 
 (defun kodi-remote-filter-band ()
   "Filter by Band name."
@@ -849,15 +856,23 @@ Key bindings:
                            "\\{kodi-remote-keyboard-mode-map}"))))
         (switch-to-buffer-other-window buffer)))))
 
+(defun kodi-get-filter-type ()
+  "Return media type for current buffer"
+  (let* ((type-map '((music . "*kodi-remote-music*")
+		     (series . "*kodi-remote-series-episodes*")
+		     (series . "*kodi-remote-series*")
+		     (movie . "*kodi-remote-movies*"))))
+    (car (rassoc (buffer-name) type-map))))
+
 (defun kodi-switch-watch-filter ()
   "Switch between visability scope of entries."
   (interactive)
-  (let* ((filters '("all" "unseen" "seen")))
-    (setq kodi-watch-filter
-	  (or (nth
-	       (+ 1 (seq-position filters kodi-watch-filter))
-	       filters)
-	      (car filters)))))
+  (let* ((filters '("all" "unseen" "seen"))
+	 (filter (kodi-get-watch-filter))
+	 (watch-filter (assoc-default (kodi-get-filter-type) kodi-watch-filter))
+	 (new-filter (or (nth (+ 1 (seq-position filters filter)) filters)
+			 (car filters))))
+    (setf (alist-get (kodi-get-filter-type) kodi-watch-filter) new-filter)))
 
 (defun kodi-remote-toggle-visibility ()
   "Toggle visability of watched/listened media."
@@ -936,7 +951,7 @@ Argument OBJ the button obj."
 
 (defun kodi-show-get-number-of-episodes (show)
   "Return number of unwatched episodes from a SHOW."
-  (pcase kodi-watch-filter
+  (pcase (kodi-get-watch-filter)
     ("all" (cdr (assoc 'episode show)))
     ("unseen" (- (cdr (assoc 'episode show))
 	       (cdr (assoc 'watchedepisodes show))))
@@ -984,6 +999,7 @@ Argument ITEM the media data from kodi."
 	  (when subitems
 	      (kodi-show-get-number-of-episodes
 	       item)))
+	 (filter (kodi-get-watch-filter))
 	 (subitemid (assoc-default id item))
 	 (resume (assoc-default 'resume item))
 	 (keys (append
@@ -1002,7 +1018,7 @@ Argument ITEM the media data from kodi."
 		     'playcount item)))
     (when (or (null subitems)
 	      (> number-of-nodes 0)
-	      (equal kodi-watch-filter "all"))
+	      (equal filter "all"))
       (let* ((buttons
 	      (mapcar
 	       (lambda (elem)
@@ -1123,9 +1139,9 @@ Optional argument SUBITEMS has this mode subitems."
 			 '[("Disk Free" 10 t)
 			   ("Disk Used" 10 t)])
 		     `[(,media-column-name  30 t)]))
-  (setq mode-name
-	(format	"kodi-remote-%s: %s" mode-tail-name
-		kodi-watch-filter)))
+  (let* ((filter (kodi-get-watch-filter)))
+    (setq mode-name
+	  (format "kodi-remote-%s: %s" mode-tail-name filter))))
 
 ;;;###autoload
 (defun kodi-remote-draw-music (&optional _arg _noconfirm)
@@ -1133,16 +1149,17 @@ Optional argument SUBITEMS has this mode subitems."
 Optional argument _ARG revert excepts this param.
 Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
-  (setq tabulated-list-format
-	[("Artist" 15 t)("Album" 15 t)
-	 ("Track" 5 t)("Song" 30 t)])
-  (setq mode-name
-	(format
-	 "kodi-remote-music: %s"
-	 (pcase kodi-watch-filter
-	   ("all" "all")
-	   ("unseen" "not listenend")
-	   ("seen" "listened"))))
+  (let* ((filter (kodi-get-watch-filter)))
+    (setq tabulated-list-format
+	  [("Artist" 15 t)("Album" 15 t)
+	   ("Track" 5 t)("Song" 30 t)])
+    (setq mode-name
+	  (format
+	   "kodi-remote-music: %s"
+	   (pcase filter
+	     ("all" "all")
+	     ("unseen" "not listenend")
+	     ("seen" "listened")))))
   (kodi-remote-get-artist-list)
   (kodi-remote-get-songs kodi-selected-artist)
   (kodi-draw-tab-list 'songid nil 'songid 'songs nil))
