@@ -129,30 +129,29 @@ Argument METHOD kodi json api argument.
 Argument PARAMS kodi json api argument."
   (setq kodi-request-running t)
   (let* ((default-directory "~")
-	 (request-data (append `(("id" . 0)
-				 ("jsonrpc" . "2.0")
-				 ("method" . ,method))
-			       (when params
-				   `(("params" . ,params))))))
-    ;; (print request-data)
+	 (request-data
+	  (append `(("id" . 0)
+		    ("jsonrpc" . "2.0")
+		    ("method" . ,method))
+		  (when params
+		    `(("params" . ,params))))))
     (request
      (kodi-json-url)
      :data (json-encode request-data)
      :headers '(("Content-Type" . "application/json"))
      :success (cl-function (lambda (&key data &allow-other-keys)
 			     (when data
-			       ;; (print data)
-			       ;; (print (json-read-from-string data))
-			       (setq kodi-properties (let-alist (json-read-from-string data)
-						       .result))
-			       ;; (print (aref (let-alist kodi-properties .episodedetails) 0))
-			       (setq kodi-request-running nil)
-			       )))
-     :error (cl-function (lambda (&key error-thrown &allow-other-keys)
-			   (message "Got error: %S" error-thrown)))
-     ;; :complete (lambda (&rest _) (message "Finished!"))
+			       (setq kodi-properties
+				     (let-alist
+					 (json-read-from-string data)
+				       .result))
+			       (setq kodi-request-running nil))))
+     :error (cl-function
+	     (lambda (&key error-thrown &allow-other-keys)
+	       (message "Got error: %S" error-thrown)))
      :parser 'buffer-string))
-  (kodi-remote-sit-for-done))
+  (kodi-remote-sit-for-done)
+  kodi-properties)
 
 ;;;###autoload
 (defun kodi-remote-start-music-party ()
