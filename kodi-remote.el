@@ -132,7 +132,7 @@ Argument PARAMS kodi json api argument."
 	 (request-data (append `(("id" . 0)
 				 ("jsonrpc" . "2.0")
 				 ("method" . ,method))
-			       (if params
+			       (when params
 				   `(("params" . ,params))))))
     ;; (print request-data)
     (request
