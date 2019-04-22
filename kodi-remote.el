@@ -97,11 +97,11 @@
   (concat "http://" kodi-host-name "/jsonrpc"))
 
 (defun kodi-remote-directory ()
-  "Builds remote base path"
+  "Builds remote base path."
   (concat "/" kodi-access-method ":" kodi-access-host ":/"))
 
 (defun kodi-get-watch-filter ()
-  "docstring"
+  "Helper function to get the filter setting for the current media type/buffer."
   (alist-get (kodi-get-filter-type) kodi-watch-filter))
 
 (defun kodi-remote-post (method params)
@@ -410,7 +410,7 @@ Argument TYPE video or audio."
   (kodi-remote-get-item 'tvshow "VideoLibrary.GetTVShows" 'tvshows "video"))
 
 (defun kodi-remote-get-series-episodes (&optional show-id)
-  "Poll episodes from shows.
+  "Poll episodes from show(s).
 Optional argument SHOW-ID limits to a specific show."
   (kodi-remote-get-item 'episode "VideoLibrary.GetEpisodes"
 			'episodes "video" "tvshowid" show-id))
@@ -482,7 +482,7 @@ Optional argument SHOW-ID limits to a specific show."
 
 (defun kodi-file-size (filename)
   "Return size of file FILENAME in bytes.
-    The size is converted to float for consistency.
+The size is converted to float for consistency.
     This doesn't recurse directories."
   (float
    (or (file-attribute-size			; might be int or float
@@ -491,7 +491,7 @@ Optional argument SHOW-ID limits to a specific show."
 
 (defun kodi-directory-size (directory)
   "Return size of directory DIRECTORY in bytes.
-    The size is converted to float for consistency.
+The size is converted to float for consistency.
     This is includes 1 level of sub directories."
   (apply '+ (mapcar
 	     (lambda
@@ -730,7 +730,7 @@ Argument VIDEO-URL A Url from a youtube video."
 
 (defun kodi-remote-youtube-operation (video-url func)
   "Wrapper function for youtube-dl.
-Extracts url / title from video-url and starts FUNC"
+Extracts url / title from VIDEO-URL and starts FUNC"
   (let* ((response
 	  (shell-command-to-string
 	   (concat "youtube-dl --no-warnings -f best -g -e "
@@ -870,7 +870,7 @@ Key bindings:
         (switch-to-buffer-other-window buffer)))))
 
 (defun kodi-get-filter-type ()
-  "Return media type for current buffer"
+  "Return media type for current buffer."
   (let* ((type-map '((music . "*kodi-remote-music*")
 		     (series . "*kodi-remote-series-episodes*")
 		     (series . "*kodi-remote-series*")
