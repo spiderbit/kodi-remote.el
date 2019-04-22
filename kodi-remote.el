@@ -995,7 +995,7 @@ Argument BUTTON contains the artist-id"
   "Get the interesting fields of each media TYPE."
   (let* ((disk-fields (if kodi-show-df '(diskfree diskused))))
     (pcase type
-      ('song '(artist album track title file playcount))
+      ('song '(artist year album track title file playcount duration))
       ('movie (cl-concatenate 'list '(title playcount resume file) disk-fields))
       ('episode (cl-concatenate 'list '(title episode playcount resume file) disk-fields))
       ('tvshow (cl-concatenate 'list '(title watchedepisodes episode file) disk-fields))
@@ -1163,8 +1163,8 @@ Optional argument _NOCONFIRM revert excepts this param."
   (interactive)
   (let* ((filter (kodi-get-watch-filter)))
     (setq tabulated-list-format
-	  [("Artist" 15 t)("Album" 15 t)
-	   ("Track" 5 t)("Song" 30 t)])
+	  [("Artist" 15 t)("Year" 5 t)("Album" 15 t)
+	   ("Track" 5 t)("Duration" 10 t)("Song" 30 t)])
     (setq mode-name
 	  (format
 	   "kodi-remote-music: %s"
