@@ -709,11 +709,15 @@ Argument ID kodi series database identifier."
    :parser 'json-read))
 
 ;;;###autoload
-(defun kodi-remote-play-url (url)
-  "Plays either direct links to video files or plugin play command URLs."
+(defun kodi-remote-play-url (url &optional resume)
+  "Plays either direct links to video files or plugin play command URLs.
+Optional argument RESUME toggles wether if file should be resumed from last stopped position."
   (interactive "surl: ")
   (kodi-remote-post "Playlist.Clear" '(("playlistid" . 1)))
-  (kodi-remote-post "Player.Open" `(("item" .  (("file" . ,url))))))
+  (kodi-remote-post "Player.Open"
+		    `(("item" . (("file" . ,url)))
+		      ("options" . (("resume" .
+				     ,(if resume t -1)))))))
 
 ;;;###autoload
 (defun kodi-remote-play-stream-url (video-url)
