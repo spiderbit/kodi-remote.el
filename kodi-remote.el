@@ -1277,7 +1277,7 @@ Optional argument _NOCONFIRM revert excepts this param."
     (define-key map (kbd "k") 'kodi-remote-keyboard)
     (define-key map (kbd "g") 'kodi-remote-draw-music)
     (define-key map (kbd "a") 'kodi-remote-playlist-add-item)
-    (define-key map (kbd "l") 'kodi-remote-toggle-visibility)
+    (define-key map (kbd "L") 'kodi-remote-toggle-visibility)
     (define-key map (kbd "b") 'kodi-remote-filter-band)
     (define-key map (kbd "x") 'kodi-remote-play-continious)
     map)
