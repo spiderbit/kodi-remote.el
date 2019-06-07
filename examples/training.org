@@ -1,0 +1,21 @@
+#+NAME: exercise
+| url                                         | Name                      | start |   end | skip |
+|---------------------------------------------+---------------------------+-------+-------+------|
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Shoulder Rotation         |  0:00 |  2:52 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | unknown                   |  2:53 |  6:58 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Dragon Curl               |  7:00 |  8:45 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Heavenly Lift             |  8:47 |  9:58 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | White Crane Spreads Wings | 10:03 | 11:35 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Wrist Rotation            | 11:47 | 13:40 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Eagle Stretch             | 13:53 | 15:24 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Hip Joint Rotation        | 15:34 | 16:50 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Neck Rotation             | 17:07 | 18:20 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Hip Rotation              | 18:23 | 19:18 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Knee Bends                | 19:19 | 20:44 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Parting the Waters        | 21:00 | 23:00 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Eagle Claws               | 23:11 | 25:42 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Grinding the Corn         | 25:49 | 28:50 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | unknown                   | 28:55 | 33:35 | x    |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Lohan Stretch             | 33:39 | 36:35 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | Spiraling Arms            | 36:36 | 38:40 |      |
+| https://www.youtube.com/watch?v=kg6oMHMmee0 | End                       | 38:42 | 60:00 |      |

@@ -23,22 +23,33 @@ Or manually:
     (setq kodi-host-name "my-htpc:8080")
 
 ## Using
-open kodi remote:
+Open kodi remote:
 
     M-x kodi-remote
 
-start playback of a youtube video
+Start playback of a youtube video
 
     M-x kodi-remote-play-video-url RET <paste youtube url> RET
 
-alternatively:
+Alternatively:
 
     M-x kodi-remote-play-stream-url RET <paste youtube url> RET
 	(advantage is that it works also with streamed videos)
 
-open the kodi playlist
+Open the kodi playlist
 
     M-x kodi-remote-playlist RET
+
+Open a special playlist with start/end timecodes inside the file/media:
+
+	M-x kodi-remote-exercise RET
+
+I use it to skip a few exercise exercises in a sport training
+video. But could probably also useful for other trainings videos
+(music instruments / language...) and maybe for on the fly Mashup
+work.
+
+Look in examples to see a example playlist.
 
 ### OPTIONAL:
 To use alternative playlist system (titles of youtube movies):

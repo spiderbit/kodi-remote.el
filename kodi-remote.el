@@ -4,7 +4,7 @@
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
-;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(json "1.4") (cl-lib "0.5")) ;(elnode "20140203.1506")
+;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(json "1.4")(cl-lib "0.5")(f "20190109.906") ;(elnode "20140203.1506")
 ;; Keywords: kodi tools convinience
 ;; Version: 0
 
@@ -32,6 +32,8 @@
 ;; 'kodi-remote'
 ;; Also open the current kodi Video Playlist with the command:
 ;; 'kodi-remote-playlist'
+;; Start play exercise mode:
+;; 'kodi-remote-exercise'
 ;; OPTIONAL: setup settings for deleting files (over tramp)
 ;; (setq kodi-dangerous-options t)
 ;; (setq kodi-access-host "my-htpc")
@@ -46,6 +48,7 @@
 (require 'let-alist)
 (require 'subr-x)
 (require 'cl-lib)
+(require 'f)
 ;; (require 'elnode)
 
 (defcustom kodi-host-name "localhost:8080"
@@ -200,6 +203,96 @@ Argument RESUME continue playback where stopped before else start from beginning
 	 (params `(("item" . ((,field-name . ,id)))
 		   ("options" . (("resume" . ,(if do-resume t -1)))))))
     (kodi-remote-post "Player.Open" params)))
+
+(defun kodi-remote-player-pos ()
+  "Update currently active window."
+  (kodi-remote-get-active-player-id)
+  (let* ((params `(("playerid" . ,kodi-active-player)
+		   ("properties" . ("time")))))
+    (kodi-remote-get "Player.GetProperties" params)))
+
+(defun kodi-seek-to-time (minutes seconds)
+  "Seek active player.
+Argument SECONDS to seek to.
+Argument MINUTES to seek to."
+  (kodi-remote-get-active-player-id)
+  (let* ((params `(("playerid" . ,kodi-active-player)
+		   ("value" . (("minutes" . ,minutes)
+			       ("seconds" . ,seconds))))))
+    (kodi-remote-post "Player.Seek" params)))
+
+(defun kodi-time-in-seconds (hours minutes seconds)
+  "Convert HOURS MINUTES and SECONDS to total seconds."
+  (+ seconds (* 60 (+ (* 60 hours) minutes))))
+
+(defun kodi-remote-play-timings (entries &optional same-file)
+  "Seeks and Monitors recursively to playlist ENTRIES start and end timings.
+Optional argument SAME-FILE set if it's only a different timeframe but the same file."
+  (let* ((entry (car entries))
+	 (url (alist-get 'url entry))
+	 ;; (start-time-in-sec (alist-get 'start-time-in-sec entry))
+	 (end-time-in-sec (alist-get 'end-time-in-sec entry))
+	 (start-min (alist-get 'start-min entry))
+	 (start-sec (alist-get 'start-sec entry))
+	 (rest (cdr entries))
+	 (end-reached nil))
+    (if same-file
+	(kodi-seek-to-time start-min start-sec)
+      ;; if play-stream-url doesn't work replace it with play-video-url
+      (if (string-prefix-p "http" url)(kodi-remote-play-stream-url url)
+	(kodi-remote-play-url url)))
+    (while (not end-reached)
+	(sleep-for 1)
+	(let* ((vid-time (cdar (kodi-remote-player-pos)))
+	       (hours (alist-get 'hours vid-time ))
+	       (minutes (alist-get 'minutes vid-time ))
+	       (seconds (alist-get 'seconds vid-time ))
+	       (time-in-sec (kodi-time-in-seconds hours minutes seconds)))
+	  (when (> time-in-sec end-time-in-sec)
+	    (setq end-reached t))))
+    (when rest
+      (kodi-remote-play-timings rest (equal url (alist-get 'url (car rest)))))))
+
+(defun kodi-remote-build-exercise-tracks (exercise)
+  "Convert a the raw playlist data to the required kodi json format.
+Argument EXERCISE TODO."
+  (let* ((start (s-split ":" (nth 2 exercise)))
+	 (start-min (string-to-number (car start)))
+	 (start-sec (string-to-number (cadr start)))
+	 (end (s-split ":" (nth 3 exercise)))
+	 (end-min (string-to-number (car end)))
+	 (end-sec (string-to-number (cadr end))))
+    `((url . ,(nth 0 exercise))
+      (start-min . ,start-min)
+      (start-sec . ,start-sec)
+      (end-min . ,end-min)
+      (end-sec . ,end-sec)
+      (start-time-in-sec . ,(kodi-time-in-seconds 0 start-min start-sec))
+      (end-time-in-sec . ,(kodi-time-in-seconds 0 end-min end-sec)))))
+
+(defun kodi-remote-org-read-table (file linenr)
+  "Return the table data as list.
+Argument FILE name of the file with the org table.
+Argument LINENR where the table data starts."
+  (let* ((fstring (f-read file))
+	 (lines (s-split "\n" fstring)))
+    (mapcar (lambda (line)
+	      (mapcar 's-trim (s-split "|" line t)))
+	    (nthcdr linenr lines))))
+
+;;;###autoload
+(defun kodi-remote-exercise (file)
+  "Start a special playlist with timecodes of items.
+useful for reordering training videos or mashup videos or
+whenever you want only a part of a media FILE in your playlist"
+  (interactive "F")
+  (let* ((exercises-raw
+	  (cl-remove-if (lambda (entry)
+		       (equal "x" (nth 4 entry)))
+		     (kodi-remote-org-read-table file 3)))
+	 (exercises (mapcar 'kodi-remote-build-exercise-tracks
+			    (nbutlast exercises-raw))))
+    (kodi-remote-play-timings exercises)))
 
 (defun kodi-remote-play-continious ()
   "Play all items in the list starting at curser pos."
@@ -417,7 +510,13 @@ Optional argument SHOW-ID limits to a specific show."
 (defun kodi-remote-get-item (entry-name request-method &optional
 					data-field source-type id-name id)
   "Poll unwatches episodes from show.
-Optional argument SHOW-ID limits to a specific show."
+Optional argument SHOW-ID limits to a specific show.
+Argument ENTRY-NAME TODO.
+Argument REQUEST-METHOD TODO.
+Optional argument DATA-FIELD TODO.
+Optional argument SOURCE-TYPE TODO.
+Optional argument ID-NAME TODO.
+Optional argument ID TODO."
   (let* ((filter (kodi-remote-visibility-filter))
 	 (fields (kodi-remote-media-fields entry-name))
 	 (sources (kodi-remote-get-sources source-type))
@@ -435,7 +534,11 @@ Optional argument SHOW-ID limits to a specific show."
       (kodi-remote-append-disk-free data-field sources))))
 
 (defun kodi-remote-disk-free (form-string func name dividor)
-  "Helper function to get free space string of item."
+  "Helper function to get free space string of item.
+Argument FORM-STRING the format of the string.
+Argument FUNC I don't know.
+Argument NAME TODO.
+Argument DIVIDOR TODO."
   (format form-string (/ (funcall func (substring name 1))
 			 (expt 2 dividor))))
 
@@ -470,7 +573,9 @@ Optional argument SHOW-ID limits to a specific show."
     (append element `((diskfree . ,size)) `((diskused . ,diskused)))))
 
 (defun kodi-remote-append-disk-free (data-name sources)
-  "Helper Function to get free space of items."
+  "Helper Function to get free space of items.
+Argument DATA-NAME TODO.
+Argument SOURCES TODO."
   (let ((kodi-path-df '())
         (kodi--sources sources))
     (setq kodi-properties
@@ -1051,7 +1156,9 @@ Argument ITEM the media data from kodi."
 	(list subitemid (seq-into buttons 'vector))))))
 
 (defun kodi-remote-button-name (elem item number-of-nodes)
-  "Generate Button name for Column ELEM."
+  "Generate Button name for Column ELEM.
+Argument ITEM TODO.
+Argument NUMBER-OF-NODES TODO."
   (decode-coding-string
    (if (equal
 	elem 'watchedepisodes)
@@ -1354,11 +1461,11 @@ Key bindings:
   (interactive)
   (kodi-remote-context #'kodi-remote-series-episodes-mode))
 
-;;;###autoload
-(defun kodi-remote-songs ()
-  "Open a `kodi-remote-songs-mode' buffer."
-  (interactive)
-  (kodi-remote-context #'kodi-remote-songs-mode))
+;; ;;;###autoload
+;; (defun kodi-remote-songs ()
+;;   "Open a `kodi-remote-songs-mode' buffer."
+;;   (interactive)
+;;   (kodi-remote-context #'kodi-remote-songs-mode))
 
 ;;;###autoload
 (defun kodi-remote-series ()
