@@ -1,10 +1,10 @@
 ;;; kodi-remote.el --- Remote Control for Kodi  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2015-2018 Stefan Huchler
+;; Copyright (C) 2015-2019 Stefan Huchler
 
 ;; Author: Stefan Huchler <stefan.huchler@mail.de>
 ;; URL: http://github.com/spiderbit/kodi-remote.el
-;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(json "1.4")(cl-lib "0.5")(f "20190109.906") ;(elnode "20140203.1506")
+;; Package-Requires: ((request "0.2.0")(let-alist "1.0.4")(json "1.4")(cl-lib "0.5")(f "20190109.906"))
 ;; Keywords: kodi tools convinience
 ;; Version: 0
 
@@ -26,6 +26,7 @@
 ;;; Commentary:
 
 ;; A major to remote control kodi instances.
+
 ;; First specify the hostname/ip of your kodi webserver:
 ;; (setq kodi-host-name "my-htpc:8080")
 ;; Then open the Remote with the command:
